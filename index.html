@@ -4,703 +4,551 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>알레르기 유발물질 관리 시스템</title>
+
+  <!-- Firebase compat (동기 로드 - 타이밍 문제 없음) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script>
+    firebase.initializeApp({
+      apiKey:            "AIzaSyB-1hk5BHsqf70Eo23_YGe5R7lV4_xTh9I",
+      authDomain:        "hare-allergen.firebaseapp.com",
+      projectId:         "hare-allergen",
+      storageBucket:     "hare-allergen.firebasestorage.app",
+      messagingSenderId: "988530050491",
+      appId:             "1:988530050491:web:7fae0173b5c83f471b709e"
+    });
+    window.__db = firebase.firestore();
+  </script>
+
+  <!-- SheetJS (엑셀 다운로드) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
-  <!-- Firebase SDK -->
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
-    // ══════════════════════════════════════════════════════
-    //  🔥 Firebase 설정값을 여기에 붙여넣으세요
-    //  (Firebase 콘솔 → 프로젝트 설정 → 내 앱 → firebaseConfig)
-    // ══════════════════════════════════════════════════════
-    const firebaseConfig = {
-   apiKey: "AIzaSyB-1hk5BHsqf70Eo23_YGe5R7lV4_xTh9I",
-  authDomain: "hare-allergen.firebaseapp.com",
-  projectId: "hare-allergen",
-  storageBucket: "hare-allergen.firebasestorage.app",
-  messagingSenderId: "988530050491",
-  appId: "1:988530050491:web:7fae0173b5c83f471b709e"
-};
-    // ══════════════════════════════════════════════════════
-
-    const app = initializeApp(firebaseConfig);
-    const db  = getFirestore(app);
-
-    // React 앱이 쓸 수 있도록 window에 노출
-    window.__firebase = { db, collection, onSnapshot, doc, setDoc, deleteDoc, getDocs };
-  </script>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Montserrat:wght@700;900&display=swap" rel="stylesheet" />
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Noto Sans KR', sans-serif; background: #f7f3ee; min-height: 100vh; }
-    .app { max-width: 1400px; margin: 0 auto; padding: 0 16px 80px; }
-    .header { background: #1a1a2e; color: white; padding: 20px 24px; margin-bottom: 24px; border-radius: 0 0 20px 20px; }
-    .header h1 { font-family: 'Montserrat', sans-serif; font-size: 22px; letter-spacing: -0.5px; }
-    .header p { font-size: 12px; color: #aaa; margin-top: 4px; }
-    .sync-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; color: #4ecca3; margin-top: 6px; }
-    .sync-dot { width: 7px; height: 7px; border-radius: 50%; background: #4ecca3; animation: pulse 2s infinite; }
-    .sync-badge.offline { color: #ff6b6b; }
-    .sync-badge.offline .sync-dot { background: #ff6b6b; animation: none; }
-    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
-    .tab-bar { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
-    .tab-btn { padding: 10px 24px; border-radius: 50px; border: 2px solid #1a1a2e; background: white; font-family: 'Noto Sans KR', sans-serif; font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.2s; color: #1a1a2e; }
-    .tab-btn.active { background: #1a1a2e; color: white; }
-    .search-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 16px; }
-    .search-input { flex: 1; min-width: 200px; padding: 10px 16px; border-radius: 50px; border: 2px solid #ddd; font-family: 'Noto Sans KR', sans-serif; font-size: 14px; outline: none; transition: border 0.2s; }
-    .search-input:focus { border-color: #1a1a2e; }
-    .cat-select { padding: 10px 16px; border-radius: 50px; border: 2px solid #ddd; font-family: 'Noto Sans KR', sans-serif; font-size: 13px; outline: none; background: white; cursor: pointer; }
-    .sort-btn { padding: 10px 16px; border-radius: 50px; border: 2px solid #ddd; background: white; font-family: 'Noto Sans KR', sans-serif; font-size: 13px; cursor: pointer; transition: all 0.15s; font-weight: 600; color: #555; white-space: nowrap; }
-    .sort-btn.active { border-color: #1a1a2e; background: #1a1a2e; color: white; }
-    .allergen-filters { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; background: white; padding: 14px; border-radius: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-    .filter-label { width: 100%; font-size: 12px; font-weight: 700; color: #666; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 4px; }
-    .allergen-chip { padding: 5px 12px; border-radius: 50px; border: 2px solid #e0e0e0; background: white; font-family: 'Noto Sans KR', sans-serif; font-size: 12px; cursor: pointer; transition: all 0.15s; color: #555; white-space: nowrap; }
-    .allergen-chip.selected { background: #ff4757; border-color: #ff4757; color: white; font-weight: 700; }
-    .results-info { font-size: 13px; color: #888; margin-bottom: 10px; }
-    .product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
-    .product-card { background: white; border-radius: 16px; padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); cursor: pointer; transition: transform 0.15s, box-shadow 0.15s; border: 2px solid transparent; }
-    .product-card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.1); }
-    .product-card.selected { border-color: #1a1a2e; }
-    .card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
-    .product-name { font-size: 15px; font-weight: 700; color: #1a1a2e; line-height: 1.3; }
-    .cat-badge { font-size: 10px; padding: 3px 10px; border-radius: 50px; white-space: nowrap; font-weight: 600; margin-left: 6px; flex-shrink: 0; margin-top: 2px; }
-    .allergen-tags { display: flex; flex-wrap: wrap; gap: 4px; }
-    .allergen-tag { font-size: 11px; padding: 2px 8px; border-radius: 50px; background: #fff3cd; color: #856404; font-weight: 600; border: 1px solid #ffc107; }
-    .allergen-tag.danger { background: #ffebee; color: #c62828; border-color: #ef9a9a; }
-    .no-allergen { font-size: 12px; color: #aaa; }
-    @media (max-width: 600px) {
-      .product-grid { grid-template-columns: 1fr; gap: 8px; }
-      .product-card { padding: 12px 14px; border-radius: 12px; display: flex; align-items: center; gap: 12px; }
-      .card-body { flex: 1; min-width: 0; }
-      .card-header { margin-bottom: 6px; flex-wrap: wrap; gap: 4px; }
-      .product-name { font-size: 14px; }
-      .cat-badge { font-size: 9px; padding: 2px 8px; }
-      .allergen-tags { gap: 3px; }
-      .allergen-tag { font-size: 10px; padding: 1px 7px; }
-      .card-arrow { font-size: 18px; color: #ccc; flex-shrink: 0; }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Noto Sans KR',sans-serif;background:#f7f3ee;min-height:100vh}
+    .app{max-width:1400px;margin:0 auto;padding:0 16px 80px}
+    .header{background:#1a1a2e;color:white;padding:20px 24px;margin-bottom:24px;border-radius:0 0 20px 20px}
+    .header h1{font-family:'Montserrat',sans-serif;font-size:22px;letter-spacing:-.5px}
+    .header p{font-size:12px;color:#aaa;margin-top:4px}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+    .tab-bar{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap}
+    .tab-btn{padding:10px 24px;border-radius:50px;border:2px solid #1a1a2e;background:white;font-family:'Noto Sans KR',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:all .2s;color:#1a1a2e}
+    .tab-btn.active{background:#1a1a2e;color:white}
+    .search-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
+    .search-input{flex:1;min-width:200px;padding:10px 16px;border-radius:50px;border:2px solid #ddd;font-family:'Noto Sans KR',sans-serif;font-size:14px;outline:none;transition:border .2s}
+    .search-input:focus{border-color:#1a1a2e}
+    .cat-select{padding:10px 16px;border-radius:50px;border:2px solid #ddd;font-family:'Noto Sans KR',sans-serif;font-size:13px;outline:none;background:white;cursor:pointer}
+    .sort-btn{padding:10px 16px;border-radius:50px;border:2px solid #ddd;background:white;font-family:'Noto Sans KR',sans-serif;font-size:13px;cursor:pointer;transition:all .15s;font-weight:600;color:#555;white-space:nowrap}
+    .sort-btn.active{border-color:#1a1a2e;background:#1a1a2e;color:white}
+    .allergen-filters{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;background:white;padding:14px;border-radius:16px;box-shadow:0 2px 8px rgba(0,0,0,.05)}
+    .filter-label{width:100%;font-size:12px;font-weight:700;color:#666;letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px}
+    .allergen-chip{padding:5px 12px;border-radius:50px;border:2px solid #e0e0e0;background:white;font-family:'Noto Sans KR',sans-serif;font-size:12px;cursor:pointer;transition:all .15s;color:#555;white-space:nowrap}
+    .allergen-chip.selected{background:#ff4757;border-color:#ff4757;color:white;font-weight:700}
+    .results-info{font-size:13px;color:#888;margin-bottom:10px}
+    .product-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
+    .product-card{background:white;border-radius:16px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,.06);cursor:pointer;transition:transform .15s,box-shadow .15s;border:2px solid transparent}
+    .product-card:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,.1)}
+    .product-card.selected{border-color:#1a1a2e}
+    .card-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px}
+    .product-name{font-size:15px;font-weight:700;color:#1a1a2e;line-height:1.3}
+    .cat-badge{font-size:10px;padding:3px 10px;border-radius:50px;white-space:nowrap;font-weight:600;margin-left:6px;flex-shrink:0;margin-top:2px}
+    .allergen-tags{display:flex;flex-wrap:wrap;gap:4px}
+    .allergen-tag{font-size:11px;padding:2px 8px;border-radius:50px;background:#fff3cd;color:#856404;font-weight:600;border:1px solid #ffc107}
+    .allergen-tag.danger{background:#ffebee;color:#c62828;border-color:#ef9a9a}
+    .no-allergen{font-size:12px;color:#aaa}
+    @media(max-width:600px){
+      .product-grid{grid-template-columns:1fr;gap:8px}
+      .product-card{padding:12px 14px;border-radius:12px;display:flex;align-items:center;gap:12px}
+      .card-body{flex:1;min-width:0}
+      .card-header{margin-bottom:6px;flex-wrap:wrap;gap:4px}
+      .product-name{font-size:14px}
+      .cat-badge{font-size:9px;padding:2px 8px}
+      .allergen-tag{font-size:10px;padding:1px 7px}
+      .card-arrow{font-size:18px;color:#ccc;flex-shrink:0}
     }
-    @media (min-width: 601px) { .card-arrow { display: none; } }
-    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; display: flex; align-items: center; justify-content: center; padding: 20px; }
-    .modal { background: white; border-radius: 20px; width: 100%; max-width: 600px; max-height: 90vh; overflow-y: auto; padding: 24px; }
-    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-    .modal-title { font-size: 20px; font-weight: 900; color: #1a1a2e; }
-    .close-btn { width: 32px; height: 32px; border-radius: 50%; border: none; background: #f0f0f0; cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center; }
-    .detail-cat { display: inline-block; padding: 4px 14px; border-radius: 50px; font-size: 12px; font-weight: 700; margin-bottom: 16px; }
-    .allergen-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-    .allergen-item { display: flex; align-items: center; gap: 6px; padding: 8px 10px; border-radius: 10px; font-size: 13px; font-weight: 500; }
-    .allergen-item.yes { background: #ffebee; color: #c62828; }
-    .allergen-item.no { background: #f5f5f5; color: #aaa; }
-    .allergen-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-    .allergen-dot.yes { background: #e53935; }
-    .allergen-dot.no { background: #ccc; }
-    .manage-section { background: white; border-radius: 16px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
-    .manage-title { font-size: 16px; font-weight: 900; color: #1a1a2e; margin-bottom: 16px; }
-    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
-    .form-group { display: flex; flex-direction: column; gap: 6px; }
-    .form-label { font-size: 12px; font-weight: 700; color: #555; }
-    .form-input, .form-select { padding: 10px 14px; border-radius: 10px; border: 2px solid #e0e0e0; font-family: 'Noto Sans KR', sans-serif; font-size: 14px; outline: none; transition: border 0.2s; width: 100%; }
-    .form-input:focus, .form-select:focus { border-color: #1a1a2e; }
-    .allergen-form-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 16px; }
-    .allergen-toggle { display: flex; align-items: center; gap: 6px; padding: 8px 10px; border-radius: 10px; border: 2px solid #e0e0e0; cursor: pointer; transition: all 0.15s; font-size: 12px; background: white; font-family: 'Noto Sans KR', sans-serif; }
-    .allergen-toggle.on { border-color: #ff4757; background: #ffebee; color: #c62828; font-weight: 700; }
-    .btn { padding: 10px 24px; border-radius: 50px; border: none; font-family: 'Noto Sans KR', sans-serif; font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.15s; }
-    .btn-primary { background: #1a1a2e; color: white; }
-    .btn-primary:hover { background: #2d2d4e; }
-    .btn-danger { background: #ff4757; color: white; }
-    .btn-danger:hover { background: #ff2d3f; }
-    .btn-secondary { background: #f0f0f0; color: #555; }
-    .btn-secondary:hover { background: #e0e0e0; }
-    .manage-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-    .manage-table th { background: #1a1a2e; color: white; padding: 10px 12px; text-align: left; font-weight: 700; }
-    .manage-table th:first-child { border-radius: 10px 0 0 0; }
-    .manage-table th:last-child { border-radius: 0 10px 0 0; }
-    .manage-table td { padding: 10px 12px; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
-    .manage-table tr:hover td { background: #fafafa; }
-    .action-btns { display: flex; gap: 6px; }
-    .btn-sm { padding: 5px 12px; font-size: 12px; border-radius: 50px; border: none; font-family: 'Noto Sans KR', sans-serif; font-weight: 700; cursor: pointer; }
-    .btn-sm-edit { background: #e3f2fd; color: #1565c0; }
-    .btn-sm-del { background: #ffebee; color: #c62828; }
-    .empty-state { text-align: center; padding: 60px 20px; color: #bbb; }
-    .empty-icon { font-size: 48px; margin-bottom: 12px; }
-    .stats-row { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
-    .stat-card { flex: 1; min-width: 120px; background: white; border-radius: 12px; padding: 14px 16px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-    .stat-num { font-size: 28px; font-weight: 900; font-family: 'Montserrat', sans-serif; color: #1a1a2e; }
-    .stat-label { font-size: 11px; color: #888; margin-top: 2px; }
-    .lock-overlay { position: fixed; inset: 0; background: rgba(26,26,46,0.92); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 20px; }
-    .lock-box { background: white; border-radius: 24px; padding: 32px; width: 100%; max-width: 360px; text-align: center; }
-    .lock-icon { font-size: 48px; margin-bottom: 16px; }
-    .lock-title { font-size: 20px; font-weight: 900; color: #1a1a2e; margin-bottom: 6px; }
-    .lock-sub { font-size: 13px; color: #888; margin-bottom: 24px; }
-    .lock-input { width: 100%; padding: 12px 16px; border-radius: 12px; border: 2px solid #e0e0e0; font-size: 18px; text-align: center; letter-spacing: 6px; outline: none; font-family: monospace; transition: border 0.2s; }
-    .lock-input:focus { border-color: #1a1a2e; }
-    .lock-error { color: #e53935; font-size: 12px; margin-top: 8px; min-height: 18px; }
-    .lock-btns { display: flex; gap: 10px; margin-top: 20px; }
-    .pw-manage { display: flex; align-items: center; gap: 8px; padding: 12px 16px; background: #f7f3ee; border-radius: 12px; margin-bottom: 16px; font-size: 13px; }
-    .pw-manage-label { flex: 1; color: #555; font-weight: 600; }
-    .lock-status { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 50px; }
-    .lock-status.locked { background: #ffebee; color: #c62828; }
-    .lock-status.unlocked { background: #e8f5e9; color: #2e7d32; }
-    /* Firebase 설정 안내 배너 */
-    .setup-banner { background: #fff3cd; border: 2px solid #ffc107; border-radius: 16px; padding: 20px 24px; margin-bottom: 20px; }
-    .setup-banner h3 { font-size: 16px; font-weight: 900; color: #856404; margin-bottom: 10px; }
-    .setup-banner ol { padding-left: 20px; font-size: 13px; color: #664d03; line-height: 2; }
-    .setup-banner code { background: #fff; border: 1px solid #ffc107; border-radius: 4px; padding: 1px 6px; font-size: 12px; font-family: monospace; }
-    @media (max-width: 600px) {
-      .allergen-form-grid { grid-template-columns: repeat(3, 1fr); }
-      .form-row { grid-template-columns: 1fr; }
-      .allergen-grid { grid-template-columns: repeat(2, 1fr); }
+    @media(min-width:601px){.card-arrow{display:none}}
+    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;display:flex;align-items:center;justify-content:center;padding:20px}
+    .modal{background:white;border-radius:20px;width:100%;max-width:600px;max-height:90vh;overflow-y:auto;padding:24px}
+    .modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
+    .modal-title{font-size:20px;font-weight:900;color:#1a1a2e}
+    .close-btn{width:32px;height:32px;border-radius:50%;border:none;background:#f0f0f0;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center}
+    .detail-cat{display:inline-block;padding:4px 14px;border-radius:50px;font-size:12px;font-weight:700;margin-bottom:16px}
+    .allergen-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+    .allergen-item{display:flex;align-items:center;gap:6px;padding:8px 10px;border-radius:10px;font-size:13px;font-weight:500}
+    .allergen-item.yes{background:#ffebee;color:#c62828}
+    .allergen-item.no{background:#f5f5f5;color:#aaa}
+    .allergen-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+    .allergen-dot.yes{background:#e53935}
+    .allergen-dot.no{background:#ccc}
+    .manage-section{background:white;border-radius:16px;padding:20px;margin-bottom:20px;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+    .manage-title{font-size:16px;font-weight:900;color:#1a1a2e;margin-bottom:16px}
+    .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+    .form-group{display:flex;flex-direction:column;gap:6px}
+    .form-label{font-size:12px;font-weight:700;color:#555}
+    .form-input,.form-select{padding:10px 14px;border-radius:10px;border:2px solid #e0e0e0;font-family:'Noto Sans KR',sans-serif;font-size:14px;outline:none;transition:border .2s;width:100%}
+    .form-input:focus,.form-select:focus{border-color:#1a1a2e}
+    .allergen-form-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px}
+    .allergen-toggle{display:flex;align-items:center;gap:6px;padding:8px 10px;border-radius:10px;border:2px solid #e0e0e0;cursor:pointer;transition:all .15s;font-size:12px;background:white;font-family:'Noto Sans KR',sans-serif}
+    .allergen-toggle.on{border-color:#ff4757;background:#ffebee;color:#c62828;font-weight:700}
+    .btn{padding:10px 24px;border-radius:50px;border:none;font-family:'Noto Sans KR',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:all .15s}
+    .btn-primary{background:#1a1a2e;color:white}
+    .btn-primary:hover{background:#2d2d4e}
+    .btn-danger{background:#ff4757;color:white}
+    .btn-secondary{background:#f0f0f0;color:#555}
+    .btn-success{background:#2ed573;color:white}
+    .btn-success:hover{background:#26bc62}
+    .manage-table{width:100%;border-collapse:collapse;font-size:13px}
+    .manage-table th{background:#1a1a2e;color:white;padding:10px 12px;text-align:left;font-weight:700}
+    .manage-table th:first-child{border-radius:10px 0 0 0}
+    .manage-table th:last-child{border-radius:0 10px 0 0}
+    .manage-table td{padding:10px 12px;border-bottom:1px solid #f0f0f0;vertical-align:middle}
+    .manage-table tr:hover td{background:#fafafa}
+    .action-btns{display:flex;gap:6px}
+    .btn-sm{padding:5px 12px;font-size:12px;border-radius:50px;border:none;font-family:'Noto Sans KR',sans-serif;font-weight:700;cursor:pointer}
+    .btn-sm-edit{background:#e3f2fd;color:#1565c0}
+    .btn-sm-del{background:#ffebee;color:#c62828}
+    .empty-state{text-align:center;padding:60px 20px;color:#bbb}
+    .empty-icon{font-size:48px;margin-bottom:12px}
+    .stats-row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px}
+    .stat-card{flex:1;min-width:120px;background:white;border-radius:12px;padding:14px 16px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.05)}
+    .stat-num{font-size:28px;font-weight:900;font-family:'Montserrat',sans-serif;color:#1a1a2e}
+    .stat-label{font-size:11px;color:#888;margin-top:2px}
+    .lock-overlay{position:fixed;inset:0;background:rgba(26,26,46,.92);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px}
+    .lock-box{background:white;border-radius:24px;padding:32px;width:100%;max-width:360px;text-align:center}
+    .lock-icon{font-size:48px;margin-bottom:16px}
+    .lock-title{font-size:20px;font-weight:900;color:#1a1a2e;margin-bottom:6px}
+    .lock-sub{font-size:13px;color:#888;margin-bottom:24px}
+    .lock-input{width:100%;padding:12px 16px;border-radius:12px;border:2px solid #e0e0e0;font-size:18px;text-align:center;letter-spacing:6px;outline:none;font-family:monospace;transition:border .2s}
+    .lock-input:focus{border-color:#1a1a2e}
+    .lock-error{color:#e53935;font-size:12px;margin-top:8px;min-height:18px}
+    .lock-btns{display:flex;gap:10px;margin-top:20px}
+    .pw-manage{display:flex;align-items:center;gap:8px;padding:12px 16px;background:#f7f3ee;border-radius:12px;margin-bottom:16px;font-size:13px}
+    .pw-manage-label{flex:1;color:#555;font-weight:600}
+    .lock-status{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;padding:3px 10px;border-radius:50px}
+    .lock-status.unlocked{background:#e8f5e9;color:#2e7d32}
+    @media(max-width:600px){
+      .allergen-form-grid{grid-template-columns:repeat(3,1fr)}
+      .form-row{grid-template-columns:1fr}
+      .allergen-grid{grid-template-columns:repeat(2,1fr)}
     }
   </style>
 </head>
 <body>
-  <div id="root"></div>
+<div id="root"></div>
+<script type="text/babel">
+  const {useState,useMemo,useEffect,useRef} = React;
+  const db = window.__db;
 
-  <script type="text/babel">
-    const { useState, useMemo, useEffect, useCallback, useRef } = React;
+  const ALLERGENS = ["계란","우유","메밀","땅콩","대두","밀","고등어","게","새우","돼지고기","복숭아","토마토","아황산류","호두","닭고기","쇠고기","오징어","조개류","잣","꿀","한천","아몬드"];
+  const CATEGORIES = ["전체","식빵/발효빵/식사빵","일반빵","케이크/롤/파운드","쿠키/정과","샌드위치/마카롱/초콜릿/잼/냉장","시즌"];
+  const CAT_COLORS = {"식빵/발효빵/식사빵":"#e8a87c","일반빵":"#85c1e9","케이크/롤/파운드":"#f1948a","쿠키/정과":"#82e0aa","샌드위치/마카롱/초콜릿/잼/냉장":"#c39bd3","시즌":"#f7dc6f","":"#bdc3c7"};
+  const DEFAULT_PW = "1234";
+  const PW_DOC = "__config__";
+  const INITIAL_DATA = [{"제품이름": "48시간호밀빵", "카테고리": "식빵/발효빵/식사빵", "계란": "No", "우유": "No", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "Yes", "한천": "No", "아몬드": "No"}, {"제품이름": "100%호밀빵", "카테고리": "식빵/발효빵/식사빵", "계란": "No", "우유": "No", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "갈릭베이컨", "카테고리": "일반빵", "계란": "No", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "Yes", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "감자치아바타", "카테고리": "식빵/발효빵/식사빵", "계란": "No", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "계절생크림케이크(1,2,3호)", "카테고리": "케이크/롤/파운드", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "Yes", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "곰돌이쿠키", "카테고리": "쿠키/정과", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "구름빵", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "국산쌀명장팥빵", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "Yes", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "꿀마카다미아", "카테고리": "쿠키/정과", "계란": "No", "우유": "No", "메밀": "No", "땅콩": "No", "대두": "No", "밀": "No", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "Yes", "한천": "No", "아몬드": "No"}, {"제품이름": "꿀아몬드", "카테고리": "쿠키/정과", "계란": "No", "우유": "No", "메밀": "No", "땅콩": "No", "대두": "No", "밀": "No", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "Yes", "한천": "No", "아몬드": "Yes"}, {"제품이름": "꿀피칸", "카테고리": "쿠키/정과", "계란": "No", "우유": "No", "메밀": "No", "땅콩": "No", "대두": "No", "밀": "No", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "Yes", "한천": "No", "아몬드": "No"}, {"제품이름": "꿀호두", "카테고리": "쿠키/정과", "계란": "No", "우유": "No", "메밀": "No", "땅콩": "No", "대두": "No", "밀": "No", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "Yes", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "Yes", "한천": "No", "아몬드": "No"}, {"제품이름": "넛츠스틱", "카테고리": "식빵/발효빵/식사빵", "계란": "No", "우유": "No", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "Yes", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "Yes", "한천": "No", "아몬드": "Yes"}, {"제품이름": "녹차인절미", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "닭가슴살샐러드", "카테고리": "샌드위치/마카롱/초콜릿/잼/냉장", "계란": "Yes", "우유": "No", "메밀": "No", "땅콩": "No", "대두": "No", "밀": "No", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "Yes", "아황산류": "No", "호두": "No", "닭고기": "Yes", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "Yes"}, {"제품이름": "닭가슴살치아바타", "카테고리": "샌드위치/마카롱/초콜릿/잼/냉장", "계란": "No", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "Yes", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "당근라페", "카테고리": "일반빵", "계란": "No", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "대전샌드쿠키", "카테고리": "쿠키/정과", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "더블치즈케이크", "카테고리": "케이크/롤/파운드", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "Yes", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "동물쿠키(시즌)", "카테고리": "쿠키/정과", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "두바이마시멜로우", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "Yes", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "Yes", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "두바이소금빵", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "Yes", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "Yes", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "두바이에그타르트", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "두바이쫀득쿠키", "카테고리": "쿠키/정과", "계란": "No", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "Yes", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "Yes", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "딸기모찌", "카테고리": "샌드위치/마카롱/초콜릿/잼/냉장", "계란": "No", "우유": "No", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "딸기밭", "카테고리": "케이크/롤/파운드", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "Yes", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "딸기산도", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "딸기아몬드쇼콜라", "카테고리": "쿠키/정과", "계란": "No", "우유": "No", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "No", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "Yes"}, {"제품이름": "딸기크로와상", "카테고리": "일반빵", "계란": "No", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "딸기티라미스", "카테고리": "케이크/롤/파운드", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "Yes", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "딸망밭", "카테고리": "케이크/롤/파운드", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "땅콩쿠키", "카테고리": "쿠키/정과", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "Yes", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "Yes"}, {"제품이름": "라구피자", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "Yes", "복숭아": "No", "토마토": "Yes", "아황산류": "No", "호두": "No", "닭고기": "Yes", "쇠고기": "Yes", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "라즈베리마카롱", "카테고리": "샌드위치/마카롱/초콜릿/잼/냉장", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "Yes", "아몬드": "Yes"}, {"제품이름": "레몬마카롱", "카테고리": "샌드위치/마카롱/초콜릿/잼/냉장", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "Yes", "아몬드": "Yes"}, {"제품이름": "레몬시트롱", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "Yes"}, {"제품이름": "로겐호밀빵", "카테고리": "식빵/발효빵/식사빵", "계란": "No", "우유": "No", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "Yes", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "로얄쇼콜라", "카테고리": "쿠키/정과", "계란": "No", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "롱뽀드득소세지", "카테고리": "일반빵", "계란": "No", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "Yes", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "Yes", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "루꼴라치아바타", "카테고리": "일반빵", "계란": "No", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "No", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "Yes", "복숭아": "No", "토마토": "Yes", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "마늘홀릭", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "No", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "마시멜로우속갸또", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "No", "밀": "No", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "말차모찌롤", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "망고밭", "카테고리": "케이크/롤/파운드", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "Yes", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "매콤칠리소세지", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "Yes", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "메론빵", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "명란바게트", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "Yes", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "모구초코", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "Yes", "한천": "No", "아몬드": "No"}, {"제품이름": "모구플레인", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "Yes", "한천": "No", "아몬드": "No"}, {"제품이름": "모닝빵", "카테고리": "식빵/발효빵/식사빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "모카롤", "카테고리": "케이크/롤/파운드", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "Yes", "한천": "Yes", "아몬드": "Yes"}, {"제품이름": "모카브릭쿠키", "카테고리": "쿠키/정과", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "모카초코", "카테고리": "", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "Yes"}, {"제품이름": "몽블랑", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "무가당듀럼밀빵", "카테고리": "식빵/발효빵/식사빵", "계란": "No", "우유": "No", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "무가당배기빵", "카테고리": "식빵/발효빵/식사빵", "계란": "No", "우유": "No", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "무가당쌀캄파뉴", "카테고리": "식빵/발효빵/식사빵", "계란": "No", "우유": "No", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "No", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "Yes", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "무가당코코넛빵", "카테고리": "식빵/발효빵/식사빵", "계란": "No", "우유": "No", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "무화과휘낭시에", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "Yes"}, {"제품이름": "미니고구마", "카테고리": "케이크/롤/파운드", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "Yes", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "Yes", "한천": "No", "아몬드": "No"}, {"제품이름": "미니과일밭", "카테고리": "케이크/롤/파운드", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "Yes", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "미니당근케이크", "카테고리": "케이크/롤/파운드", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "미니살라망드", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "미니오렌지살구", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "미니요거귤", "카테고리": "케이크/롤/파운드", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "No", "밀": "No", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "Yes", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "미니초코산딸기", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "미니크림치즈타르트", "카테고리": "케이크/롤/파운드", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "Yes", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "미니티라미스", "카테고리": "케이크/롤/파운드", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "Yes", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "밀크브레산", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "밀크스틱", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "바게트", "카테고리": "식빵/발효빵/식사빵", "계란": "No", "우유": "No", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "바닐라마카롱", "카테고리": "샌드위치/마카롱/초콜릿/잼/냉장", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "Yes"}, {"제품이름": "바질토마토", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "No", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "Yes", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "바통", "카테고리": "쿠키/정과", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "Yes"}, {"제품이름": "반미샌드위치", "카테고리": "샌드위치/마카롱/초콜릿/잼/냉장", "계란": "No", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "밤티라미스", "카테고리": "케이크/롤/파운드", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "Yes", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "버터롤", "카테고리": "케이크/롤/파운드", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "Yes", "한천": "Yes", "아몬드": "No"}, {"제품이름": "벌꿀카스테라", "카테고리": "케이크/롤/파운드", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "Yes", "한천": "No", "아몬드": "No"}, {"제품이름": "본레스햄샌드위치", "카테고리": "샌드위치/마카롱/초콜릿/잼/냉장", "계란": "Yes", "우유": "No", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "Yes", "복숭아": "No", "토마토": "Yes", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "브라우니", "카테고리": "쿠키/정과", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "Yes"}, {"제품이름": "블루베리마카롱", "카테고리": "샌드위치/마카롱/초콜릿/잼/냉장", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "Yes", "아몬드": "Yes"}, {"제품이름": "블루베리베이글", "카테고리": "일반빵", "계란": "No", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "블루베리케익", "카테고리": "케이크/롤/파운드", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "Yes", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "뽀로", "카테고리": "쿠키/정과", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "새우바질치아바타", "카테고리": "샌드위치/마카롱/초콜릿/잼/냉장", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "Yes", "돼지고기": "No", "복숭아": "No", "토마토": "Yes", "아황산류": "Yes", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "생무화과", "카테고리": "케이크/롤/파운드", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "Yes", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "생초콜릿다크", "카테고리": "샌드위치/마카롱/초콜릿/잼/냉장", "계란": "No", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "No", "밀": "No", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "생초콜릿쑥인절미", "카테고리": "샌드위치/마카롱/초콜릿/잼/냉장", "계란": "No", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "No", "밀": "No", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "샤브레", "카테고리": "쿠키/정과", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "샤브레티쿠키 딸기", "카테고리": "쿠키/정과", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "Yes"}, {"제품이름": "샤브레티쿠키 레드벨벳", "카테고리": "쿠키/정과", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "Yes"}, {"제품이름": "샤브레티쿠키 레몬", "카테고리": "쿠키/정과", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "Yes"}, {"제품이름": "샤브레티쿠키 초코", "카테고리": "쿠키/정과", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "Yes"}, {"제품이름": "세자무튀이루", "카테고리": "쿠키/정과", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "Yes"}, {"제품이름": "소금빵", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "No", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "소보로", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "Yes", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "Yes"}, {"제품이름": "쇼콜라오랑쥬", "카테고리": "케이크/롤/파운드", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "Yes", "호두": "Yes", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "쇼콜라테디", "카테고리": "케이크/롤/파운드", "계란": "No", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "No", "밀": "No", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "Yes", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "쇼콜라프로겐트", "카테고리": "쿠키/정과", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "Yes"}, {"제품이름": "쇼콜라하트", "카테고리": "케이크/롤/파운드", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "Yes", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "쇼콜라휘낭시에", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "Yes"}, {"제품이름": "수제딸기잼", "카테고리": "샌드위치/마카롱/초콜릿/잼/냉장", "계란": "No", "우유": "No", "메밀": "No", "땅콩": "No", "대두": "No", "밀": "No", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "Yes", "아몬드": "No"}, {"제품이름": "순수망고롤(H,P)", "카테고리": "케이크/롤/파운드", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "순수우유롤(H,P)", "카테고리": "케이크/롤/파운드", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "쉘", "카테고리": "쿠키/정과", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "슈톨렌", "카테고리": "시즌", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "Yes"}, {"제품이름": "스파이시샌드위치", "카테고리": "샌드위치/마카롱/초콜릿/잼/냉장", "계란": "Yes", "우유": "No", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "Yes", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "시금치베이글", "카테고리": "일반빵", "계란": "No", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "시나몬브레드", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "시오카라멜휘낭시에", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "쌀꽈배기", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "쌀딸기밭/쌀과일밭", "카테고리": "케이크/롤/파운드", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "No", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "쌀쉬폰", "카테고리": "일반빵", "계란": "Yes", "우유": "No", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "No", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "쌀식빵", "카테고리": "식빵/발효빵/식사빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "쌀치즈카스테라", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "No", "밀": "No", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "쑥설기", "카테고리": "일반빵", "계란": "Yes", "우유": "No", "메밀": "No", "땅콩": "No", "대두": "No", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "쑥인절미", "카테고리": "일반빵", "계란": "No", "우유": "No", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "아몬드쇼콜라", "카테고리": "쿠키/정과", "계란": "No", "우유": "No", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "No", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "Yes"}, {"제품이름": "알밤가득식빵", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "Yes"}, {"제품이름": "앙버터소금빵", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "애플파이", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "Yes"}, {"제품이름": "야끼소바", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "Yes", "복숭아": "No", "토마토": "Yes", "아황산류": "Yes", "호두": "No", "닭고기": "No", "쇠고기": "Yes", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "야채소세지빵", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "Yes", "복숭아": "No", "토마토": "Yes", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "Yes", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "양파빵", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "No", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "어니언베이글", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "얼그레이마카롱", "카테고리": "샌드위치/마카롱/초콜릿/잼/냉장", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "Yes"}, {"제품이름": "에그샌드위치", "카테고리": "샌드위치/마카롱/초콜릿/잼/냉장", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "Yes", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "에그소금빵", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "에그타르트", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "Yes", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "연탄빵", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "Yes", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "오레오마카롱", "카테고리": "샌드위치/마카롱/초콜릿/잼/냉장", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "Yes"}, {"제품이름": "오렌지파운드", "카테고리": "케이크/롤/파운드", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "Yes", "호두": "Yes", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "Yes"}, {"제품이름": "오리지널파네토네", "카테고리": "식빵/발효빵/식사빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "Yes", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "Yes", "한천": "No", "아몬드": "Yes"}, {"제품이름": "오트밀초코칩쿠키", "카테고리": "쿠키/정과", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "올리브베이글", "카테고리": "일반빵", "계란": "No", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "올리브치아바타", "카테고리": "식빵/발효빵/식사빵", "계란": "No", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "우리쌀카스테라", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "No", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "우유마들렌", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "우유모찌롤", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "우유식빵", "카테고리": "식빵/발효빵/식사빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "우유폭탄", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "제리의치즈케이크", "카테고리": "케이크/롤/파운드", "계란": "No", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "Yes", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "쪽파프리글", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "No", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "찹쌀카스테라", "카테고리": "케이크/롤/파운드", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "초코마카롱", "카테고리": "샌드위치/마카롱/초콜릿/잼/냉장", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "Yes", "아몬드": "Yes"}, {"제품이름": "초코모찌롤", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "초코바게트", "카테고리": "일반빵", "계란": "No", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "초코밭테디", "카테고리": "케이크/롤/파운드", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "Yes", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "초코슈톨렌", "카테고리": "시즌", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "Yes"}, {"제품이름": "초코파네토네", "카테고리": "식빵/발효빵/식사빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "Yes", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "Yes", "한천": "No", "아몬드": "Yes"}, {"제품이름": "초콜릿샤브레", "카테고리": "쿠키/정과", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "추억의 밤모스", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "Yes", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "Yes", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "Yes"}, {"제품이름": "츄러스", "카테고리": "일반빵", "계란": "Yes", "우유": "No", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "No", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "Yes"}, {"제품이름": "치즈스틱", "카테고리": "쿠키/정과", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "Yes"}, {"제품이름": "치즈테디", "카테고리": "케이크/롤/파운드", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "No", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "Yes", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "치킨바베큐치아바타", "카테고리": "샌드위치/마카롱/초콜릿/잼/냉장", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "Yes", "아황산류": "No", "호두": "No", "닭고기": "Yes", "쇠고기": "Yes", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "코코넛쿠키", "카테고리": "쿠키/정과", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "콘치즈캄파뉴", "카테고리": "식빵/발효빵/식사빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "크랜베리", "카테고리": "쿠키/정과", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "Yes"}, {"제품이름": "크랜베리롤치즈캄파뉴", "카테고리": "식빵/발효빵/식사빵", "계란": "No", "우유": "Yes", "메밀": "No", "땅콩": "Yes", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "Yes", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "크랜베리식빵", "카테고리": "식빵/발효빵/식사빵", "계란": "No", "우유": "No", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "Yes", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "크로와상", "카테고리": "일반빵", "계란": "No", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "크림치즈딸기타르트 /\n  모둠타르트", "카테고리": "케이크/롤/파운드", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "Yes", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "크림치즈마카롱", "카테고리": "샌드위치/마카롱/초콜릿/잼/냉장", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "Yes", "아몬드": "Yes"}, {"제품이름": "크림치즈무화과", "카테고리": "식빵/발효빵/식사빵", "계란": "No", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "키리쉬(1,2,3호)", "카테고리": "케이크/롤/파운드", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "Yes", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "통밀빵", "카테고리": "식빵/발효빵/식사빵", "계란": "No", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "Yes", "한천": "No", "아몬드": "No"}, {"제품이름": "통밀식빵", "카테고리": "식빵/발효빵/식사빵", "계란": "No", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "파이만쥬", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "No", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "Yes", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "Yes"}, {"제품이름": "팡도미식빵", "카테고리": "식빵/발효빵/식사빵", "계란": "No", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "팥모나카", "카테고리": "샌드위치/마카롱/초콜릿/잼/냉장", "계란": "No", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "No", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "팥카스테라", "카테고리": "케이크/롤/파운드", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "Yes", "아몬드": "No"}, {"제품이름": "포카치아샌드위치", "카테고리": "샌드위치/마카롱/초콜릿/잼/냉장", "계란": "No", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "Yes", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "플레인모나카", "카테고리": "샌드위치/마카롱/초콜릿/잼/냉장", "계란": "No", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "No", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "피스타치오체리마카롱", "카테고리": "샌드위치/마카롱/초콜릿/잼/냉장", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "Yes", "아몬드": "Yes"}, {"제품이름": "피스타치오체리파네토네", "카테고리": "식빵/발효빵/식사빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "Yes", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "Yes", "한천": "No", "아몬드": "Yes"}, {"제품이름": "피치요거트/요거귤", "카테고리": "케이크/롤/파운드", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "Yes", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "하레러스크", "카테고리": "일반빵", "계란": "No", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "하레식빵", "카테고리": "식빵/발효빵/식사빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "하레치즈볼", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "No", "밀": "No", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "하레푸딩", "카테고리": "샌드위치/마카롱/초콜릿/잼/냉장", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "No", "밀": "No", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "하초생", "카테고리": "케이크/롤/파운드", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "Yes", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "하트쿠키", "카테고리": "쿠키/정과", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "할라피뇨페퍼로니", "카테고리": "일반빵", "계란": "No", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "Yes", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "Yes", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "햄샌드위치", "카테고리": "샌드위치/마카롱/초콜릿/잼/냉장", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "Yes", "복숭아": "No", "토마토": "Yes", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "햄치즈치아바타", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "Yes", "복숭아": "No", "토마토": "Yes", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "Yes", "오징어": "No", "조개류": "Yes", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "헤이즐넛쇼콜라", "카테고리": "쿠키/정과", "계란": "No", "우유": "No", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "No", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "호두과자", "카테고리": "일반빵", "계란": "Yes", "우유": "No", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "Yes", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "Yes"}, {"제품이름": "호두바게트", "카테고리": "식빵/발효빵/식사빵", "계란": "No", "우유": "No", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "Yes", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "호두쉬폰", "카테고리": "일반빵", "계란": "Yes", "우유": "No", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "Yes", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "호두파운드", "카테고리": "케이크/롤/파운드", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "Yes", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "화이트브로드네쥬", "카테고리": "쿠키/정과", "계란": "No", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "후르츠초코파운드", "카테고리": "케이크/롤/파운드", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "Yes", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "Yes", "한천": "No", "아몬드": "Yes"}, {"제품이름": "흰둥이", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "No", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}];
 
-    const ALLERGENS = ["계란","우유","메밀","땅콩","대두","밀","고등어","게","새우","돼지고기","복숭아","토마토","아황산류","호두","닭고기","쇠고기","오징어","조개류","잣","꿀","한천","아몬드"];
-    const CATEGORIES = ["전체", "식빵/발효빵/식사빵", "일반빵", "케이크/롤/파운드", "쿠키/정과", "샌드위치/마카롱/초콜릿/잼/냉장", "시즌"];
-    const CAT_COLORS = {
-      "식빵/발효빵/식사빵": "#e8a87c",
-      "일반빵": "#85c1e9",
-      "케이크/롤/파운드": "#f1948a",
-      "쿠키/정과": "#82e0aa",
-      "샌드위치/마카롱/초콜릿/잼/냉장": "#c39bd3",
-      "시즌": "#f7dc6f",
-      "": "#bdc3c7"
+  function App() {
+    const [products, setProducts]   = useState([]);
+    const [loaded, setLoaded]       = useState(false);
+    const [tab, setTab]             = useState("view");
+    const [search, setSearch]       = useState("");
+    const [category, setCategory]   = useState("전체");
+    const [filterAllergens, setFilterAllergens] = useState([]);
+    const [selectedProduct, setSelectedProduct] = useState(null);
+    const [editProduct, setEditProduct] = useState(null);
+    const [showForm, setShowForm]   = useState(false);
+    const [formData, setFormData]   = useState(null);
+    const [sortOrder, setSortOrder] = useState("asc");
+    const [saving, setSaving]       = useState(false);
+    const [managePw, setManagePw]   = useState(DEFAULT_PW);
+    const [isManageLocked, setIsManageLocked] = useState(true);
+    const [showPwModal, setShowPwModal]       = useState(false);
+    const [pwInput, setPwInput]               = useState("");
+    const [pwError, setPwError]               = useState("");
+    const [showChangePwModal, setShowChangePwModal] = useState(false);
+    const [newPwInput, setNewPwInput]   = useState("");
+    const [newPwConfirm, setNewPwConfirm] = useState("");
+    const [pwChangeError, setPwChangeError] = useState("");
+    const initDone = useRef(false);
+
+    useEffect(() => {
+      // 비밀번호 로드
+      db.collection("config").doc(PW_DOC).get().then(d => {
+        if (d.exists && d.data().pw) setManagePw(d.data().pw);
+      });
+
+      // 실시간 구독
+      const unsub = db.collection("products").onSnapshot(async snap => {
+        if (snap.empty && !initDone.current) {
+          initDone.current = true;
+          // 최초: 초기 데이터 일괄 업로드 (batch write)
+          const batches = [];
+          let batch = db.batch();
+          let count = 0;
+          INITIAL_DATA.forEach((p, i) => {
+            const ref = db.collection("products").doc("p_" + i);
+            batch.set(ref, {...p, _id: "p_" + i});
+            count++;
+            if (count === 400) { batches.push(batch); batch = db.batch(); count = 0; }
+          });
+          if (count > 0) batches.push(batch);
+          await Promise.all(batches.map(b => b.commit()));
+        } else {
+          const docs = snap.docs.map(d => ({...d.data(), _id: d.id}));
+          docs.sort((a, b) => {
+            const na = parseInt(a._id.replace("p_","")) || 0;
+            const nb = parseInt(b._id.replace("p_","")) || 0;
+            return na - nb;
+          });
+          setProducts(docs);
+          setLoaded(true);
+        }
+      }, err => {
+        console.error(err);
+        setLoaded(true);
+      });
+      return unsub;
+    }, []);
+
+    const saveProd = async (p) => {
+      const id = p._id || "p_" + Date.now();
+      await db.collection("products").doc(id).set({...p, _id: id});
+    };
+    const delProd = async (id) => {
+      await db.collection("products").doc(id).delete();
     };
 
-    const DEFAULT_PW = "1234";
-    const PW_DOC_ID  = "__config__";   // Firestore에 비밀번호 저장용 doc ID
+    const getProductAllergens = (p) => ALLERGENS.filter(a => p[a] === "Yes");
 
-    // ── Firebase 초기화 대기 (ES module이 먼저 실행될 때까지 폴링) ──
-    function waitForFirebase() {
-      return new Promise((resolve, reject) => {
-        let tries = 0;
-        const check = () => {
-          if (window.__firebase) return resolve(window.__firebase);
-          if (++tries > 50) return reject(new Error("Firebase 로드 실패"));
-          setTimeout(check, 100);
-        };
-        check();
+    const sortedProducts = useMemo(() => {
+      if (sortOrder === "none") return [...products];
+      return [...products].sort((a, b) => {
+        const c = a["제품이름"].localeCompare(b["제품이름"], "ko");
+        return sortOrder === "asc" ? c : -c;
       });
-    }
+    }, [products, sortOrder]);
 
-    const INITIAL_DATA = [{"제품이름": "48시간호밀빵", "카테고리": "식빵/발효빵/식사빵", "계란": "No", "우유": "No", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "Yes", "한천": "No", "아몬드": "No"}, {"제품이름": "100%호밀빵", "카테고리": "식빵/발효빵/식사빵", "계란": "No", "우유": "No", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "갈릭베이컨", "카테고리": "일반빵", "계란": "No", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "Yes", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "감자치아바타", "카테고리": "식빵/발효빵/식사빵", "계란": "No", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "계절생크림케이크(1,2,3호)", "카테고리": "케이크/롤/파운드", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "Yes", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "곰돌이쿠키", "카테고리": "쿠키/정과", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "구름빵", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "국산쌀명장팥빵", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "Yes", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "꿀마카다미아", "카테고리": "쿠키/정과", "계란": "No", "우유": "No", "메밀": "No", "땅콩": "No", "대두": "No", "밀": "No", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "Yes", "한천": "No", "아몬드": "No"}, {"제품이름": "꿀아몬드", "카테고리": "쿠키/정과", "계란": "No", "우유": "No", "메밀": "No", "땅콩": "No", "대두": "No", "밀": "No", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "Yes", "한천": "No", "아몬드": "Yes"}, {"제품이름": "꿀피칸", "카테고리": "쿠키/정과", "계란": "No", "우유": "No", "메밀": "No", "땅콩": "No", "대두": "No", "밀": "No", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "Yes", "한천": "No", "아몬드": "No"}, {"제품이름": "꿀호두", "카테고리": "쿠키/정과", "계란": "No", "우유": "No", "메밀": "No", "땅콩": "No", "대두": "No", "밀": "No", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "Yes", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "Yes", "한천": "No", "아몬드": "No"}, {"제품이름": "넛츠스틱", "카테고리": "식빵/발효빵/식사빵", "계란": "No", "우유": "No", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "Yes", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "Yes", "한천": "No", "아몬드": "Yes"}, {"제품이름": "녹차인절미", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "닭가슴살샐러드", "카테고리": "샌드위치/마카롱/초콜릿/잼/냉장", "계란": "Yes", "우유": "No", "메밀": "No", "땅콩": "No", "대두": "No", "밀": "No", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "Yes", "아황산류": "No", "호두": "No", "닭고기": "Yes", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "Yes"}, {"제품이름": "닭가슴살치아바타", "카테고리": "샌드위치/마카롱/초콜릿/잼/냉장", "계란": "No", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "Yes", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "당근라페", "카테고리": "일반빵", "계란": "No", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "대전샌드쿠키", "카테고리": "쿠키/정과", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "더블치즈케이크", "카테고리": "케이크/롤/파운드", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "Yes", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "동물쿠키(시즌)", "카테고리": "쿠키/정과", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "두바이마시멜로우", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "Yes", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "Yes", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "두바이소금빵", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "Yes", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "Yes", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "두바이에그타르트", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "두바이쫀득쿠키", "카테고리": "쿠키/정과", "계란": "No", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "Yes", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "Yes", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "딸기모찌", "카테고리": "샌드위치/마카롱/초콜릿/잼/냉장", "계란": "No", "우유": "No", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "딸기밭", "카테고리": "케이크/롤/파운드", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "Yes", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "딸기산도", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "딸기아몬드쇼콜라", "카테고리": "쿠키/정과", "계란": "No", "우유": "No", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "No", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "Yes"}, {"제품이름": "딸기크로와상", "카테고리": "일반빵", "계란": "No", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "딸기티라미스", "카테고리": "케이크/롤/파운드", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "Yes", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "딸망밭", "카테고리": "케이크/롤/파운드", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "땅콩쿠키", "카테고리": "쿠키/정과", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "Yes", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "Yes"}, {"제품이름": "라구피자", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "Yes", "복숭아": "No", "토마토": "Yes", "아황산류": "No", "호두": "No", "닭고기": "Yes", "쇠고기": "Yes", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "라즈베리마카롱", "카테고리": "샌드위치/마카롱/초콜릿/잼/냉장", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "Yes", "아몬드": "Yes"}, {"제품이름": "레몬마카롱", "카테고리": "샌드위치/마카롱/초콜릿/잼/냉장", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "Yes", "아몬드": "Yes"}, {"제품이름": "레몬시트롱", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "Yes"}, {"제품이름": "로겐호밀빵", "카테고리": "식빵/발효빵/식사빵", "계란": "No", "우유": "No", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "Yes", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "로얄쇼콜라", "카테고리": "쿠키/정과", "계란": "No", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "롱뽀드득소세지", "카테고리": "일반빵", "계란": "No", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "Yes", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "Yes", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "루꼴라치아바타", "카테고리": "일반빵", "계란": "No", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "No", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "Yes", "복숭아": "No", "토마토": "Yes", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "마늘홀릭", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "No", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "마시멜로우속갸또", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "No", "밀": "No", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "말차모찌롤", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "망고밭", "카테고리": "케이크/롤/파운드", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "Yes", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "매콤칠리소세지", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "Yes", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "메론빵", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "명란바게트", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "Yes", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "모구초코", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "Yes", "한천": "No", "아몬드": "No"}, {"제품이름": "모구플레인", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "Yes", "한천": "No", "아몬드": "No"}, {"제품이름": "모닝빵", "카테고리": "식빵/발효빵/식사빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "모카롤", "카테고리": "케이크/롤/파운드", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "Yes", "한천": "Yes", "아몬드": "Yes"}, {"제품이름": "모카브릭쿠키", "카테고리": "쿠키/정과", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "모카초코", "카테고리": "", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "Yes"}, {"제품이름": "몽블랑", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "무가당듀럼밀빵", "카테고리": "식빵/발효빵/식사빵", "계란": "No", "우유": "No", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "무가당배기빵", "카테고리": "식빵/발효빵/식사빵", "계란": "No", "우유": "No", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "무가당쌀캄파뉴", "카테고리": "식빵/발효빵/식사빵", "계란": "No", "우유": "No", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "No", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "Yes", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "무가당코코넛빵", "카테고리": "식빵/발효빵/식사빵", "계란": "No", "우유": "No", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "무화과휘낭시에", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "Yes"}, {"제품이름": "미니고구마", "카테고리": "케이크/롤/파운드", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "Yes", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "Yes", "한천": "No", "아몬드": "No"}, {"제품이름": "미니과일밭", "카테고리": "케이크/롤/파운드", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "Yes", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "미니당근케이크", "카테고리": "케이크/롤/파운드", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "미니살라망드", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "미니오렌지살구", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "미니요거귤", "카테고리": "케이크/롤/파운드", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "No", "밀": "No", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "Yes", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "미니초코산딸기", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "미니크림치즈타르트", "카테고리": "케이크/롤/파운드", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "Yes", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "미니티라미스", "카테고리": "케이크/롤/파운드", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "Yes", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "밀크브레산", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "밀크스틱", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "바게트", "카테고리": "식빵/발효빵/식사빵", "계란": "No", "우유": "No", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "바닐라마카롱", "카테고리": "샌드위치/마카롱/초콜릿/잼/냉장", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "Yes"}, {"제품이름": "바질토마토", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "No", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "Yes", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "바통", "카테고리": "쿠키/정과", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "Yes"}, {"제품이름": "반미샌드위치", "카테고리": "샌드위치/마카롱/초콜릿/잼/냉장", "계란": "No", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "밤티라미스", "카테고리": "케이크/롤/파운드", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "Yes", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "버터롤", "카테고리": "케이크/롤/파운드", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "Yes", "한천": "Yes", "아몬드": "No"}, {"제품이름": "벌꿀카스테라", "카테고리": "케이크/롤/파운드", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "Yes", "한천": "No", "아몬드": "No"}, {"제품이름": "본레스햄샌드위치", "카테고리": "샌드위치/마카롱/초콜릿/잼/냉장", "계란": "Yes", "우유": "No", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "Yes", "복숭아": "No", "토마토": "Yes", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "브라우니", "카테고리": "쿠키/정과", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "Yes"}, {"제품이름": "블루베리마카롱", "카테고리": "샌드위치/마카롱/초콜릿/잼/냉장", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "Yes", "아몬드": "Yes"}, {"제품이름": "블루베리베이글", "카테고리": "일반빵", "계란": "No", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "블루베리케익", "카테고리": "케이크/롤/파운드", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "Yes", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "뽀로", "카테고리": "쿠키/정과", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "새우바질치아바타", "카테고리": "샌드위치/마카롱/초콜릿/잼/냉장", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "Yes", "돼지고기": "No", "복숭아": "No", "토마토": "Yes", "아황산류": "Yes", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "생무화과", "카테고리": "케이크/롤/파운드", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "Yes", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "생초콜릿다크", "카테고리": "샌드위치/마카롱/초콜릿/잼/냉장", "계란": "No", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "No", "밀": "No", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "생초콜릿쑥인절미", "카테고리": "샌드위치/마카롱/초콜릿/잼/냉장", "계란": "No", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "No", "밀": "No", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "샤브레", "카테고리": "쿠키/정과", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "샤브레티쿠키 딸기", "카테고리": "쿠키/정과", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "Yes"}, {"제품이름": "샤브레티쿠키 레드벨벳", "카테고리": "쿠키/정과", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "Yes"}, {"제품이름": "샤브레티쿠키 레몬", "카테고리": "쿠키/정과", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "Yes"}, {"제품이름": "샤브레티쿠키 초코", "카테고리": "쿠키/정과", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "Yes"}, {"제품이름": "세자무튀이루", "카테고리": "쿠키/정과", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "Yes"}, {"제품이름": "소금빵", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "No", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "소보로", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "Yes", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "Yes"}, {"제품이름": "쇼콜라오랑쥬", "카테고리": "케이크/롤/파운드", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "Yes", "호두": "Yes", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "쇼콜라테디", "카테고리": "케이크/롤/파운드", "계란": "No", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "No", "밀": "No", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "Yes", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "쇼콜라프로겐트", "카테고리": "쿠키/정과", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "Yes"}, {"제품이름": "쇼콜라하트", "카테고리": "케이크/롤/파운드", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "Yes", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "쇼콜라휘낭시에", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "Yes"}, {"제품이름": "수제딸기잼", "카테고리": "샌드위치/마카롱/초콜릿/잼/냉장", "계란": "No", "우유": "No", "메밀": "No", "땅콩": "No", "대두": "No", "밀": "No", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "Yes", "아몬드": "No"}, {"제품이름": "순수망고롤(H,P)", "카테고리": "케이크/롤/파운드", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "순수우유롤(H,P)", "카테고리": "케이크/롤/파운드", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "쉘", "카테고리": "쿠키/정과", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "슈톨렌", "카테고리": "시즌", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "Yes"}, {"제품이름": "스파이시샌드위치", "카테고리": "샌드위치/마카롱/초콜릿/잼/냉장", "계란": "Yes", "우유": "No", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "Yes", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "시금치베이글", "카테고리": "일반빵", "계란": "No", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "시나몬브레드", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "시오카라멜휘낭시에", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "쌀꽈배기", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "쌀딸기밭/쌀과일밭", "카테고리": "케이크/롤/파운드", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "No", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "쌀쉬폰", "카테고리": "일반빵", "계란": "Yes", "우유": "No", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "No", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "쌀식빵", "카테고리": "식빵/발효빵/식사빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "쌀치즈카스테라", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "No", "밀": "No", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "쑥설기", "카테고리": "일반빵", "계란": "Yes", "우유": "No", "메밀": "No", "땅콩": "No", "대두": "No", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "쑥인절미", "카테고리": "일반빵", "계란": "No", "우유": "No", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "아몬드쇼콜라", "카테고리": "쿠키/정과", "계란": "No", "우유": "No", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "No", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "Yes"}, {"제품이름": "알밤가득식빵", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "Yes"}, {"제품이름": "앙버터소금빵", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "애플파이", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "Yes"}, {"제품이름": "야끼소바", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "Yes", "복숭아": "No", "토마토": "Yes", "아황산류": "Yes", "호두": "No", "닭고기": "No", "쇠고기": "Yes", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "야채소세지빵", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "Yes", "복숭아": "No", "토마토": "Yes", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "Yes", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "양파빵", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "No", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "어니언베이글", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "얼그레이마카롱", "카테고리": "샌드위치/마카롱/초콜릿/잼/냉장", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "Yes"}, {"제품이름": "에그샌드위치", "카테고리": "샌드위치/마카롱/초콜릿/잼/냉장", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "Yes", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "에그소금빵", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "에그타르트", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "Yes", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "연탄빵", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "Yes", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "오레오마카롱", "카테고리": "샌드위치/마카롱/초콜릿/잼/냉장", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "Yes"}, {"제품이름": "오렌지파운드", "카테고리": "케이크/롤/파운드", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "Yes", "호두": "Yes", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "Yes"}, {"제품이름": "오리지널파네토네", "카테고리": "식빵/발효빵/식사빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "Yes", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "Yes", "한천": "No", "아몬드": "Yes"}, {"제품이름": "오트밀초코칩쿠키", "카테고리": "쿠키/정과", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "올리브베이글", "카테고리": "일반빵", "계란": "No", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "올리브치아바타", "카테고리": "식빵/발효빵/식사빵", "계란": "No", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "우리쌀카스테라", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "No", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "우유마들렌", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "우유모찌롤", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "우유식빵", "카테고리": "식빵/발효빵/식사빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "우유폭탄", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "제리의치즈케이크", "카테고리": "케이크/롤/파운드", "계란": "No", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "Yes", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "쪽파프리글", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "No", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "찹쌀카스테라", "카테고리": "케이크/롤/파운드", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "초코마카롱", "카테고리": "샌드위치/마카롱/초콜릿/잼/냉장", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "Yes", "아몬드": "Yes"}, {"제품이름": "초코모찌롤", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "초코바게트", "카테고리": "일반빵", "계란": "No", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "초코밭테디", "카테고리": "케이크/롤/파운드", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "Yes", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "초코슈톨렌", "카테고리": "시즌", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "Yes"}, {"제품이름": "초코파네토네", "카테고리": "식빵/발효빵/식사빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "Yes", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "Yes", "한천": "No", "아몬드": "Yes"}, {"제품이름": "초콜릿샤브레", "카테고리": "쿠키/정과", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "추억의 밤모스", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "Yes", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "Yes", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "Yes"}, {"제품이름": "츄러스", "카테고리": "일반빵", "계란": "Yes", "우유": "No", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "No", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "Yes"}, {"제품이름": "치즈스틱", "카테고리": "쿠키/정과", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "Yes"}, {"제품이름": "치즈테디", "카테고리": "케이크/롤/파운드", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "No", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "Yes", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "치킨바베큐치아바타", "카테고리": "샌드위치/마카롱/초콜릿/잼/냉장", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "Yes", "아황산류": "No", "호두": "No", "닭고기": "Yes", "쇠고기": "Yes", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "코코넛쿠키", "카테고리": "쿠키/정과", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "콘치즈캄파뉴", "카테고리": "식빵/발효빵/식사빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "크랜베리", "카테고리": "쿠키/정과", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "Yes"}, {"제품이름": "크랜베리롤치즈캄파뉴", "카테고리": "식빵/발효빵/식사빵", "계란": "No", "우유": "Yes", "메밀": "No", "땅콩": "Yes", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "Yes", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "크랜베리식빵", "카테고리": "식빵/발효빵/식사빵", "계란": "No", "우유": "No", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "Yes", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "크로와상", "카테고리": "일반빵", "계란": "No", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "크림치즈딸기타르트 /\n  모둠타르트", "카테고리": "케이크/롤/파운드", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "Yes", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "크림치즈마카롱", "카테고리": "샌드위치/마카롱/초콜릿/잼/냉장", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "Yes", "아몬드": "Yes"}, {"제품이름": "크림치즈무화과", "카테고리": "식빵/발효빵/식사빵", "계란": "No", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "키리쉬(1,2,3호)", "카테고리": "케이크/롤/파운드", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "Yes", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "통밀빵", "카테고리": "식빵/발효빵/식사빵", "계란": "No", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "Yes", "한천": "No", "아몬드": "No"}, {"제품이름": "통밀식빵", "카테고리": "식빵/발효빵/식사빵", "계란": "No", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "파이만쥬", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "No", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "Yes", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "Yes"}, {"제품이름": "팡도미식빵", "카테고리": "식빵/발효빵/식사빵", "계란": "No", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "팥모나카", "카테고리": "샌드위치/마카롱/초콜릿/잼/냉장", "계란": "No", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "No", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "팥카스테라", "카테고리": "케이크/롤/파운드", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "Yes", "아몬드": "No"}, {"제품이름": "포카치아샌드위치", "카테고리": "샌드위치/마카롱/초콜릿/잼/냉장", "계란": "No", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "Yes", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "플레인모나카", "카테고리": "샌드위치/마카롱/초콜릿/잼/냉장", "계란": "No", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "No", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "피스타치오체리마카롱", "카테고리": "샌드위치/마카롱/초콜릿/잼/냉장", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "Yes", "아몬드": "Yes"}, {"제품이름": "피스타치오체리파네토네", "카테고리": "식빵/발효빵/식사빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "Yes", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "Yes", "한천": "No", "아몬드": "Yes"}, {"제품이름": "피치요거트/요거귤", "카테고리": "케이크/롤/파운드", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "Yes", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "하레러스크", "카테고리": "일반빵", "계란": "No", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "하레식빵", "카테고리": "식빵/발효빵/식사빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "하레치즈볼", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "No", "밀": "No", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "하레푸딩", "카테고리": "샌드위치/마카롱/초콜릿/잼/냉장", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "No", "밀": "No", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "하초생", "카테고리": "케이크/롤/파운드", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "Yes", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "하트쿠키", "카테고리": "쿠키/정과", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "할라피뇨페퍼로니", "카테고리": "일반빵", "계란": "No", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "Yes", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "Yes", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "햄샌드위치", "카테고리": "샌드위치/마카롱/초콜릿/잼/냉장", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "Yes", "복숭아": "No", "토마토": "Yes", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "햄치즈치아바타", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "Yes", "복숭아": "No", "토마토": "Yes", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "Yes", "오징어": "No", "조개류": "Yes", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "헤이즐넛쇼콜라", "카테고리": "쿠키/정과", "계란": "No", "우유": "No", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "No", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "호두과자", "카테고리": "일반빵", "계란": "Yes", "우유": "No", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "Yes", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "Yes"}, {"제품이름": "호두바게트", "카테고리": "식빵/발효빵/식사빵", "계란": "No", "우유": "No", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "Yes", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "호두쉬폰", "카테고리": "일반빵", "계란": "Yes", "우유": "No", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "Yes", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "호두파운드", "카테고리": "케이크/롤/파운드", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "Yes", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "화이트브로드네쥬", "카테고리": "쿠키/정과", "계란": "No", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}, {"제품이름": "후르츠초코파운드", "카테고리": "케이크/롤/파운드", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "Yes", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "Yes", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "Yes", "한천": "No", "아몬드": "Yes"}, {"제품이름": "흰둥이", "카테고리": "일반빵", "계란": "Yes", "우유": "Yes", "메밀": "No", "땅콩": "No", "대두": "Yes", "밀": "No", "고등어": "No", "게": "No", "새우": "No", "돼지고기": "No", "복숭아": "No", "토마토": "No", "아황산류": "No", "호두": "No", "닭고기": "No", "쇠고기": "No", "오징어": "No", "조개류": "No", "잣": "No", "꿀": "No", "한천": "No", "아몬드": "No"}];
+    const filteredProducts = useMemo(() => sortedProducts.filter(p => {
+      return p["제품이름"].includes(search)
+        && (category === "전체" || p["카테고리"] === category)
+        && (filterAllergens.length === 0 || filterAllergens.every(a => p[a] === "Yes"));
+    }), [sortedProducts, search, category, filterAllergens]);
 
-    function App() {
-      const [products, setProducts]             = useState([]);
-      const [loaded, setLoaded]                 = useState(false);
-      const [fbReady, setFbReady]               = useState(false);
-      const [fbError, setFbError]               = useState(false);
-      const [tab, setTab]                       = useState("view");
-      const [search, setSearch]                 = useState("");
-      const [category, setCategory]             = useState("전체");
-      const [filterAllergens, setFilterAllergens] = useState([]);
-      const [selectedProduct, setSelectedProduct] = useState(null);
-      const [editProduct, setEditProduct]       = useState(null);
-      const [showForm, setShowForm]             = useState(false);
-      const [formData, setFormData]             = useState(null);
-      const [sortOrder, setSortOrder]           = useState("asc");
-      const [saving, setSaving]                 = useState(false);
+    const allergenCounts = useMemo(() => {
+      const c = {}; ALLERGENS.forEach(a => { c[a] = products.filter(p => p[a] === "Yes").length; }); return c;
+    }, [products]);
 
-      // 비밀번호 상태
-      const [managePw, setManagePw]             = useState(DEFAULT_PW);
-      const [isManageLocked, setIsManageLocked] = useState(true);
-      const [showPwModal, setShowPwModal]       = useState(false);
-      const [pwInput, setPwInput]               = useState("");
-      const [pwError, setPwError]               = useState("");
-      const [showChangePwModal, setShowChangePwModal] = useState(false);
-      const [newPwInput, setNewPwInput]         = useState("");
-      const [newPwConfirm, setNewPwConfirm]     = useState("");
-      const [pwChangeError, setPwChangeError]   = useState("");
+    const openNew = () => { const b = {"제품이름":"","카테고리":"일반빵"}; ALLERGENS.forEach(a=>b[a]="No"); setFormData(b); setEditProduct(null); setShowForm(true); };
+    const openEdit = (p) => { setFormData({...p}); setEditProduct(p._id); setShowForm(true); };
+    const saveForm = async () => {
+      if (!formData["제품이름"].trim()) { alert("제품이름을 입력하세요."); return; }
+      setSaving(true);
+      try { await saveProd(editProduct ? {...formData, _id: editProduct} : formData); setShowForm(false); }
+      catch(e) { alert("저장 실패: "+e.message); }
+      setSaving(false);
+    };
+    const deleteProduct = async (id) => { if (!window.confirm("삭제하시겠습니까?")) return; await delProd(id); };
 
-      const fbRef = useRef(null);
-
-      // ── Firebase 초기화 및 실시간 데이터 구독 ──
-      useEffect(() => {
-        waitForFirebase()
-          .then(({ db, collection, onSnapshot, doc, getDocs }) => {
-            fbRef.current = { db, collection, doc, setDoc: window.__firebase.setDoc, deleteDoc: window.__firebase.deleteDoc };
-            setFbReady(true);
-
-            const colRef = collection(db, "products");
-
-            // 실시간 구독: 누가 수정하면 모두에게 즉시 반영
-            const unsubscribe = onSnapshot(colRef, async (snapshot) => {
-              if (snapshot.empty && !loaded) {
-                // 최초 실행: 초기 데이터 업로드
-                console.log("초기 데이터를 Firestore에 업로드합니다...");
-                const { setDoc, doc } = window.__firebase;
-                for (let i = 0; i < INITIAL_DATA.length; i++) {
-                  const id = `p_${i}`;
-                  await setDoc(doc(db, "products", id), { ...INITIAL_DATA[i], _id: id });
-                }
-              } else {
-                const docs = snapshot.docs.map(d => ({ ...d.data(), _id: d.id }));
-                setProducts(docs.sort((a, b) => (a._id > b._id ? 1 : -1)));
-              }
-              setLoaded(true);
-            }, (err) => {
-              console.error("Firestore 구독 오류:", err);
-              setFbError(true);
-              setLoaded(true);
-            });
-
-            // 비밀번호 로드
-            getDocs(collection(db, "config")).then(snap => {
-              snap.forEach(d => {
-                if (d.id === PW_DOC_ID && d.data().pw) setManagePw(d.data().pw);
-              });
-            });
-
-            return unsubscribe;
-          })
-          .catch(err => {
-            console.error("Firebase 초기화 실패:", err);
-            setFbError(true);
-            setLoaded(true);
-          });
-      }, []);
-
-      // ── Firestore에 제품 저장/수정 ──
-      const saveProductToFirestore = async (product) => {
-        if (!fbRef.current) return;
-        const { db, doc, setDoc } = fbRef.current;
-        const id = product._id || `p_${Date.now()}`;
-        await setDoc(doc(db, "products", id), { ...product, _id: id });
-        return id;
-      };
-
-      // ── Firestore에서 제품 삭제 ──
-      const deleteProductFromFirestore = async (id) => {
-        if (!fbRef.current) return;
-        const { db, doc, deleteDoc } = fbRef.current;
-        await deleteDoc(doc(db, "products", id));
-      };
-
-      // ── Firestore에 비밀번호 저장 ──
-      const savePwToFirestore = async (pw) => {
-        if (!fbRef.current) return;
-        const { db, doc, setDoc } = fbRef.current;
-        await setDoc(doc(db, "config", PW_DOC_ID), { pw });
-      };
-
-      const toggleAllergenFilter = (a) => {
-        setFilterAllergens(prev => prev.includes(a) ? prev.filter(x => x !== a) : [...prev, a]);
-      };
-
-      const getProductAllergens = (p) => ALLERGENS.filter(a => p[a] === "Yes");
-
-      const sortedProducts = useMemo(() => {
-        if (sortOrder === "none") return [...products];
-        return [...products].sort((a, b) => {
-          const cmp = a["제품이름"].localeCompare(b["제품이름"], "ko");
-          return sortOrder === "asc" ? cmp : -cmp;
-        });
-      }, [products, sortOrder]);
-
-      const filteredProducts = useMemo(() => {
-        return sortedProducts.filter(p => {
-          const matchSearch = p["제품이름"].includes(search);
-          const matchCat = category === "전체" || p["카테고리"] === category;
-          const matchAllergen = filterAllergens.length === 0 || filterAllergens.every(a => p[a] === "Yes");
-          return matchSearch && matchCat && matchAllergen;
-        });
-      }, [sortedProducts, search, category, filterAllergens]);
-
-      const allergenCounts = useMemo(() => {
-        const counts = {};
-        ALLERGENS.forEach(a => { counts[a] = products.filter(p => p[a] === "Yes").length; });
-        return counts;
-      }, [products]);
-
-      const openNew = () => {
-        const blank = { "제품이름": "", "카테고리": "일반빵" };
-        ALLERGENS.forEach(a => blank[a] = "No");
-        setFormData(blank); setEditProduct(null); setShowForm(true);
-      };
-      const openEdit = (p) => { setFormData({ ...p }); setEditProduct(p._id); setShowForm(true); };
-
-      const saveForm = async () => {
-        if (!formData["제품이름"].trim()) { alert("제품이름을 입력하세요."); return; }
-        setSaving(true);
-        try {
-          if (editProduct !== null) {
-            await saveProductToFirestore({ ...formData, _id: editProduct });
-          } else {
-            const newId = `p_${Date.now()}`;
-            await saveProductToFirestore({ ...formData, _id: newId });
-          }
-          setShowForm(false);
-        } catch(e) {
-          alert("저장 실패: " + e.message);
-        }
-        setSaving(false);
-      };
-
-      const deleteProduct = async (id) => {
-        if (!window.confirm("삭제하시겠습니까?")) return;
-        await deleteProductFromFirestore(id);
-      };
-
-      const exportCSV = () => {
-        const cols = ["제품이름","카테고리",...ALLERGENS];
-        const header = cols.join(",");
-        const rows = products.map(p => cols.map(c => `"${((p[c]||"").toString().replace(/"/g,'""'))}"`).join(","));
-        const blob = new Blob([header + "\n" + rows.join("\n")], { type: "text/csv;charset=utf-8;" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a"); a.href = url; a.download = "allergen_data.csv"; a.click();
-      };
-
-      const handleManageTabClick = () => {
-        if (isManageLocked) { setPwInput(""); setPwError(""); setShowPwModal(true); }
-        else setTab("manage");
-      };
-      const submitPw = () => {
-        if (pwInput === managePw) { setIsManageLocked(false); setShowPwModal(false); setTab("manage"); setPwInput(""); }
-        else setPwError("비밀번호가 올바르지 않습니다.");
-      };
-      const lockManage = () => { setIsManageLocked(true); if (tab === "manage") setTab("view"); };
-
-      const submitChangePw = async () => {
-        if (newPwInput.length < 4) { setPwChangeError("비밀번호는 4자리 이상이어야 합니다."); return; }
-        if (newPwInput !== newPwConfirm) { setPwChangeError("비밀번호가 일치하지 않습니다."); return; }
-        setManagePw(newPwInput);
-        await savePwToFirestore(newPwInput);
-        setShowChangePwModal(false);
-        setNewPwInput(""); setNewPwConfirm(""); setPwChangeError("");
-        alert("비밀번호가 변경되었습니다.");
-      };
-
-      // Firebase 설정이 기본값인지 확인
-      const isConfigPlaceholder = !fbReady && !fbError;
-      const isConfigDefault = document.querySelector('script[type="module"]') &&
-        document.querySelector('script[type="module"]').textContent.includes("여기에_apiKey_붙여넣기");
-
-      if (!loaded) {
-        return (
-          <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"100vh",fontSize:16,color:"#888",gap:12}}>
-            <div style={{fontSize:36}}>🔥</div>
-            <div>Firebase 연결 중...</div>
-            {fbError && <div style={{color:"#e53935",fontSize:13}}>연결 실패 — Firebase 설정값을 확인하세요</div>}
-          </div>
-        );
+    // ── 엑셀 다운로드 ──
+    const exportExcel = () => {
+      const cols = ["제품이름","카테고리",...ALLERGENS];
+      const header = cols;
+      const rows = products.map(p => cols.map(c => p[c] || ""));
+      const ws = XLSX.utils.aoa_to_sheet([header, ...rows]);
+      // 열 너비 설정
+      ws['!cols'] = cols.map((c, i) => ({ wch: i === 0 ? 24 : i === 1 ? 22 : 8 }));
+      // 헤더 행 스타일 (배경색)
+      const range = XLSX.utils.decode_range(ws['!ref']);
+      for (let C = range.s.c; C <= range.e.c; C++) {
+        const addr = XLSX.utils.encode_cell({r:0, c:C});
+        if (ws[addr]) ws[addr].s = { fill:{fgColor:{rgb:"1A1A2E"}}, font:{color:{rgb:"FFFFFF"}, bold:true}, alignment:{horizontal:"center"} };
       }
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "알레르기 목록");
+      XLSX.writeFile(wb, "알레르기_유발물질_목록.xlsx");
+    };
 
-      return (
-        <React.Fragment>
-          {/* 비밀번호 모달 */}
-          {showPwModal && (
-            <div className="lock-overlay" onClick={() => setShowPwModal(false)}>
-              <div className="lock-box" onClick={e => e.stopPropagation()}>
-                <div className="lock-icon">🔒</div>
-                <div className="lock-title">관리자 인증</div>
-                <div className="lock-sub">관리 탭에 접근하려면 비밀번호를 입력하세요</div>
-                <input className="lock-input" type="password" placeholder="●●●●" value={pwInput}
-                  onChange={e => { setPwInput(e.target.value); setPwError(""); }}
-                  onKeyDown={e => e.key === "Enter" && submitPw()} autoFocus />
-                <div className="lock-error">{pwError}</div>
-                <div className="lock-btns">
-                  <button className="btn btn-secondary" style={{flex:1}} onClick={() => setShowPwModal(false)}>취소</button>
-                  <button className="btn btn-primary" style={{flex:1}} onClick={submitPw}>확인</button>
-                </div>
+    const handleManageTabClick = () => {
+      if (isManageLocked) { setPwInput(""); setPwError(""); setShowPwModal(true); } else setTab("manage");
+    };
+    const submitPw = () => {
+      if (pwInput === managePw) { setIsManageLocked(false); setShowPwModal(false); setTab("manage"); setPwInput(""); }
+      else setPwError("비밀번호가 올바르지 않습니다.");
+    };
+    const lockManage = () => { setIsManageLocked(true); if (tab==="manage") setTab("view"); };
+    const submitChangePw = async () => {
+      if (newPwInput.length < 4) { setPwChangeError("4자리 이상 입력하세요."); return; }
+      if (newPwInput !== newPwConfirm) { setPwChangeError("비밀번호가 일치하지 않습니다."); return; }
+      setManagePw(newPwInput);
+      await db.collection("config").doc(PW_DOC).set({pw: newPwInput});
+      setShowChangePwModal(false); setNewPwInput(""); setNewPwConfirm(""); setPwChangeError("");
+      alert("비밀번호가 변경되었습니다.");
+    };
+
+    if (!loaded) return (
+      <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"100vh",gap:16}}>
+        <div style={{fontSize:40}}>🥐</div>
+        <div style={{fontSize:15,color:"#555",fontWeight:600}}>데이터 불러오는 중...</div>
+        <div style={{width:180,height:4,background:"#eee",borderRadius:4,overflow:"hidden"}}>
+          <div style={{width:"60%",height:"100%",background:"#1a1a2e",borderRadius:4,animation:"load 1.2s ease-in-out infinite"}}/>
+        </div>
+        <style>{`@keyframes load{0%{transform:translateX(-100%)}100%{transform:translateX(200%)}}`}</style>
+      </div>
+    );
+
+    return (
+      <React.Fragment>
+        {/* 비밀번호 모달 */}
+        {showPwModal && (
+          <div className="lock-overlay" onClick={()=>setShowPwModal(false)}>
+            <div className="lock-box" onClick={e=>e.stopPropagation()}>
+              <div className="lock-icon">🔒</div>
+              <div className="lock-title">관리자 인증</div>
+              <div className="lock-sub">비밀번호를 입력하세요</div>
+              <input className="lock-input" type="password" placeholder="●●●●" value={pwInput}
+                onChange={e=>{setPwInput(e.target.value);setPwError("");}}
+                onKeyDown={e=>e.key==="Enter"&&submitPw()} autoFocus />
+              <div className="lock-error">{pwError}</div>
+              <div className="lock-btns">
+                <button className="btn btn-secondary" style={{flex:1}} onClick={()=>setShowPwModal(false)}>취소</button>
+                <button className="btn btn-primary" style={{flex:1}} onClick={submitPw}>확인</button>
               </div>
             </div>
-          )}
-
-          {/* 비밀번호 변경 모달 */}
-          {showChangePwModal && (
-            <div className="lock-overlay" onClick={() => setShowChangePwModal(false)}>
-              <div className="lock-box" onClick={e => e.stopPropagation()}>
-                <div className="lock-icon">🔑</div>
-                <div className="lock-title">비밀번호 변경</div>
-                <div className="lock-sub">새 비밀번호를 설정합니다</div>
-                <input className="lock-input" type="password" placeholder="새 비밀번호" value={newPwInput}
-                  onChange={e => { setNewPwInput(e.target.value); setPwChangeError(""); }} style={{marginBottom:10}} />
-                <input className="lock-input" type="password" placeholder="비밀번호 확인" value={newPwConfirm}
-                  onChange={e => { setNewPwConfirm(e.target.value); setPwChangeError(""); }}
-                  onKeyDown={e => e.key === "Enter" && submitChangePw()} />
-                <div className="lock-error">{pwChangeError}</div>
-                <div className="lock-btns">
-                  <button className="btn btn-secondary" style={{flex:1}} onClick={() => setShowChangePwModal(false)}>취소</button>
-                  <button className="btn btn-primary" style={{flex:1}} onClick={submitChangePw}>변경</button>
-                </div>
+          </div>
+        )}
+        {/* 비밀번호 변경 모달 */}
+        {showChangePwModal && (
+          <div className="lock-overlay" onClick={()=>setShowChangePwModal(false)}>
+            <div className="lock-box" onClick={e=>e.stopPropagation()}>
+              <div className="lock-icon">🔑</div>
+              <div className="lock-title">비밀번호 변경</div>
+              <div className="lock-sub">새 비밀번호를 설정합니다</div>
+              <input className="lock-input" type="password" placeholder="새 비밀번호" value={newPwInput}
+                onChange={e=>{setNewPwInput(e.target.value);setPwChangeError("");}} style={{marginBottom:10}}/>
+              <input className="lock-input" type="password" placeholder="비밀번호 확인" value={newPwConfirm}
+                onChange={e=>{setNewPwConfirm(e.target.value);setPwChangeError("");}}
+                onKeyDown={e=>e.key==="Enter"&&submitChangePw()}/>
+              <div className="lock-error">{pwChangeError}</div>
+              <div className="lock-btns">
+                <button className="btn btn-secondary" style={{flex:1}} onClick={()=>setShowChangePwModal(false)}>취소</button>
+                <button className="btn btn-primary" style={{flex:1}} onClick={submitChangePw}>변경</button>
               </div>
             </div>
-          )}
+          </div>
+        )}
 
-          <div className="app">
-            <div className="header">
-              <h1>🥐 알레르기 유발물질 관리 시스템</h1>
-              <p>제품 {products.length}종 · 알레르기 항목 {ALLERGENS.length}가지</p>
-              {fbError
-                ? <div className="sync-badge offline"><span className="sync-dot"></span>Firebase 연결 오류</div>
-                : <div className="sync-badge"><span className="sync-dot"></span>🔥 Firebase 실시간 동기화 · QR 접속 가능</div>
-              }
-            </div>
+        <div className="app">
+          <div className="header">
+            <h1>🥐 알레르기 유발물질 관리 시스템</h1>
+            <p>제품 {products.length}종 · 알레르기 항목 {ALLERGENS.length}가지</p>
+          </div>
 
-            {/* Firebase 설정 안내 배너 (설정 전 표시) */}
-            {fbError && (
-              <div className="setup-banner">
-                <h3>🔧 Firebase 설정이 필요합니다</h3>
-                <ol>
-                  <li>아래 <strong>상세 설정 안내 문서</strong>를 따라 Firebase 프로젝트를 만드세요</li>
-                  <li>이 HTML 파일의 상단 <code>firebaseConfig</code> 부분에 발급받은 값을 붙여넣으세요</li>
-                  <li>저장 후 다시 열면 모든 기기에서 실시간 동기화됩니다</li>
-                </ol>
+          <div className="tab-bar">
+            <button className={`tab-btn ${tab==="view"?"active":""}`} onClick={()=>setTab("view")}>📋 조회</button>
+            <button className={`tab-btn ${tab==="manage"?"active":""}`} onClick={handleManageTabClick}>
+              {isManageLocked?"🔒":"🔓"} 관리
+            </button>
+            <button className={`tab-btn ${tab==="stats"?"active":""}`} onClick={()=>setTab("stats")}>📊 통계</button>
+          </div>
+
+          {/* ── 조회 탭 ── */}
+          {tab==="view" && (
+            <React.Fragment>
+              <div className="search-row">
+                <input className="search-input" placeholder="🔍 제품명 검색..." value={search} onChange={e=>setSearch(e.target.value)}/>
+                <select className="cat-select" value={category} onChange={e=>setCategory(e.target.value)}>
+                  {CATEGORIES.map(c=><option key={c}>{c}</option>)}
+                </select>
+                <button className={`sort-btn ${sortOrder==="asc"?"active":""}`} onClick={()=>setSortOrder(sortOrder==="asc"?"none":"asc")}>가나다 ↑</button>
+                <button className={`sort-btn ${sortOrder==="desc"?"active":""}`} onClick={()=>setSortOrder(sortOrder==="desc"?"none":"desc")}>역순 ↓</button>
               </div>
-            )}
-
-            <div className="tab-bar">
-              <button className={`tab-btn ${tab==="view"?"active":""}`} onClick={() => setTab("view")}>📋 조회</button>
-              <button className={`tab-btn ${tab==="manage"?"active":""}`} onClick={handleManageTabClick}>
-                {isManageLocked ? "🔒" : "🔓"} 관리
-              </button>
-              <button className={`tab-btn ${tab==="stats"?"active":""}`} onClick={() => setTab("stats")}>📊 통계</button>
-            </div>
-
-            {/* ── 조회 탭 ── */}
-            {tab === "view" && (
-              <React.Fragment>
-                <div className="search-row">
-                  <input className="search-input" placeholder="🔍 제품명 검색..." value={search} onChange={e => setSearch(e.target.value)} />
-                  <select className="cat-select" value={category} onChange={e => setCategory(e.target.value)}>
-                    {CATEGORIES.map(c => <option key={c}>{c}</option>)}
-                  </select>
-                  <button className={`sort-btn ${sortOrder==="asc"?"active":""}`} onClick={() => setSortOrder(sortOrder==="asc"?"none":"asc")}>가나다 ↑</button>
-                  <button className={`sort-btn ${sortOrder==="desc"?"active":""}`} onClick={() => setSortOrder(sortOrder==="desc"?"none":"desc")}>역순 ↓</button>
-                </div>
-
-                <div className="allergen-filters">
-                  <div className="filter-label">🚨 포함 알레르기 필터 (복수 선택 가능)</div>
-                  {ALLERGENS.map(a => (
-                    <button key={a} className={`allergen-chip ${filterAllergens.includes(a)?"selected":""}`} onClick={() => toggleAllergenFilter(a)}>
-                      {a}{filterAllergens.includes(a) && ` (${allergenCounts[a]})`}
-                    </button>
-                  ))}
-                  {filterAllergens.length > 0 && <button className="allergen-chip" onClick={() => setFilterAllergens([])}>✕ 초기화</button>}
-                </div>
-
-                <div className="results-info">
-                  검색결과: <strong>{filteredProducts.length}</strong>건
-                  {filterAllergens.length > 0 && ` · 필터: ${filterAllergens.join(", ")} 포함`}
-                  {sortOrder !== "none" && ` · ${sortOrder==="asc"?"가나다순":"역순"} 정렬`}
-                </div>
-
-                {filteredProducts.length === 0
-                  ? <div className="empty-state"><div className="empty-icon">🔍</div><p>검색 결과가 없습니다</p></div>
-                  : (
-                    <div className="product-grid">
-                      {filteredProducts.map(p => {
-                        const allergens = getProductAllergens(p);
-                        const catColor = CAT_COLORS[p["카테고리"]] || "#ddd";
-                        return (
-                          <div key={p._id} className={`product-card ${selectedProduct?._id===p._id?"selected":""}`} onClick={() => setSelectedProduct(p)}>
-                            <div className="card-body" style={{flex:1,minWidth:0}}>
-                              <div className="card-header">
-                                <div className="product-name">{p["제품이름"]}</div>
-                                <span className="cat-badge" style={{background:catColor+"33",color:"#555",border:`1px solid ${catColor}55`}}>
-                                  {p["카테고리"] || "미분류"}
-                                </span>
-                              </div>
-                              <div className="allergen-tags">
-                                {allergens.length === 0
-                                  ? <span className="no-allergen">알레르기 없음</span>
-                                  : allergens.map(a => (
-                                    <span key={a} className={`allergen-tag ${filterAllergens.includes(a)?"danger":""}`}>{a}</span>
-                                  ))
-                                }
-                              </div>
+              <div className="allergen-filters">
+                <div className="filter-label">🚨 포함 알레르기 필터</div>
+                {ALLERGENS.map(a=>(
+                  <button key={a} className={`allergen-chip ${filterAllergens.includes(a)?"selected":""}`} onClick={()=>setFilterAllergens(prev=>prev.includes(a)?prev.filter(x=>x!==a):[...prev,a])}>
+                    {a}{filterAllergens.includes(a)&&` (${allergenCounts[a]})`}
+                  </button>
+                ))}
+                {filterAllergens.length>0 && <button className="allergen-chip" onClick={()=>setFilterAllergens([])}>✕ 초기화</button>}
+              </div>
+              <div className="results-info">검색결과: <strong>{filteredProducts.length}</strong>건</div>
+              {filteredProducts.length===0
+                ? <div className="empty-state"><div className="empty-icon">🔍</div><p>검색 결과가 없습니다</p></div>
+                : <div className="product-grid">
+                    {filteredProducts.map(p=>{
+                      const allergens=getProductAllergens(p);
+                      const cc=CAT_COLORS[p["카테고리"]]||"#ddd";
+                      return(
+                        <div key={p._id} className={`product-card ${selectedProduct?._id===p._id?"selected":""}`} onClick={()=>setSelectedProduct(p)}>
+                          <div className="card-body" style={{flex:1,minWidth:0}}>
+                            <div className="card-header">
+                              <div className="product-name">{p["제품이름"]}</div>
+                              <span className="cat-badge" style={{background:cc+"33",color:"#555",border:`1px solid ${cc}55`}}>{p["카테고리"]||"미분류"}</span>
                             </div>
-                            <span className="card-arrow">›</span>
+                            <div className="allergen-tags">
+                              {allergens.length===0 ? <span className="no-allergen">알레르기 없음</span>
+                                : allergens.map(a=><span key={a} className={`allergen-tag ${filterAllergens.includes(a)?"danger":""}`}>{a}</span>)}
+                            </div>
                           </div>
-                        );
-                      })}
-                    </div>
-                  )
-                }
-              </React.Fragment>
-            )}
-
-            {/* ── 관리 탭 ── */}
-            {tab === "manage" && !isManageLocked && (
-              <React.Fragment>
-                <div className="pw-manage">
-                  <span className="pw-manage-label">🔑 관리자 잠금</span>
-                  <span className="lock-status unlocked">🔓 잠금 해제됨</span>
-                  <button className="btn btn-secondary" style={{padding:"6px 14px",fontSize:12,marginLeft:8}} onClick={() => { setShowChangePwModal(true); setNewPwInput(""); setNewPwConfirm(""); setPwChangeError(""); }}>비밀번호 변경</button>
-                  <button className="btn btn-danger" style={{padding:"6px 14px",fontSize:12,marginLeft:4}} onClick={lockManage}>잠금</button>
-                </div>
-                <div className="manage-section">
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-                    <div className="manage-title">제품 목록 ({products.length}종)</div>
-                    <div style={{display:"flex",gap:8}}>
-                      <button className="btn btn-secondary" onClick={exportCSV}>⬇ CSV 내보내기</button>
-                      <button className="btn btn-primary" onClick={openNew}>+ 새 제품 추가</button>
-                    </div>
-                  </div>
-                  <div style={{overflowX:"auto"}}>
-                    <table className="manage-table">
-                      <thead>
-                        <tr>
-                          <th style={{minWidth:160}}>제품이름</th>
-                          <th style={{minWidth:140}}>카테고리</th>
-                          <th style={{minWidth:200}}>주요 알레르기</th>
-                          <th style={{minWidth:100}}>관리</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {products.map(p => {
-                          const allergens = getProductAllergens(p);
-                          return (
-                            <tr key={p._id}>
-                              <td style={{fontWeight:600}}>{p["제품이름"]}</td>
-                              <td>
-                                <span style={{background:CAT_COLORS[p["카테고리"]]+"22",color:"#555",padding:"2px 10px",borderRadius:50,fontSize:11,fontWeight:600}}>
-                                  {p["카테고리"]||"미분류"}
-                                </span>
-                              </td>
-                              <td>
-                                {allergens.length===0
-                                  ? <span style={{color:"#ccc",fontSize:12}}>없음</span>
-                                  : allergens.slice(0,5).map(a => (
-                                    <span key={a} style={{display:"inline-block",margin:"1px 2px",background:"#fff3cd",color:"#856404",padding:"1px 7px",borderRadius:50,fontSize:11,fontWeight:600,border:"1px solid #ffc107"}}>{a}</span>
-                                  ))
-                                }
-                                {allergens.length > 5 && <span style={{fontSize:11,color:"#aaa"}}> +{allergens.length-5}</span>}
-                              </td>
-                              <td>
-                                <div className="action-btns">
-                                  <button className="btn-sm btn-sm-edit" onClick={() => openEdit(p)}>수정</button>
-                                  <button className="btn-sm btn-sm-del" onClick={() => deleteProduct(p._id)}>삭제</button>
-                                </div>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </React.Fragment>
-            )}
-
-            {/* ── 통계 탭 ── */}
-            {tab === "stats" && (
-              <React.Fragment>
-                <div className="stats-row">
-                  {CATEGORIES.filter(c => c !== "전체").map(c => {
-                    const count = products.filter(p => p["카테고리"] === c).length;
-                    return (
-                      <div key={c} className="stat-card">
-                        <div className="stat-num" style={{color: CAT_COLORS[c] || "#333"}}>{count}</div>
-                        <div className="stat-label">{c || "미분류"}</div>
-                      </div>
-                    );
-                  })}
-                </div>
-                <div className="manage-section">
-                  <div className="manage-title">알레르기별 포함 제품 수</div>
-                  <div style={{display:"flex",flexDirection:"column",gap:8}}>
-                    {ALLERGENS.sort((a,b) => allergenCounts[b]-allergenCounts[a]).map(a => {
-                      const pct = products.length > 0 ? Math.round((allergenCounts[a] / products.length) * 100) : 0;
-                      return (
-                        <div key={a} style={{display:"flex",alignItems:"center",gap:12}}>
-                          <div style={{width:70,fontSize:13,fontWeight:600,color:"#555",flexShrink:0}}>{a}</div>
-                          <div style={{flex:1,background:"#f0f0f0",borderRadius:50,height:16,overflow:"hidden"}}>
-                            <div style={{width:`${pct}%`,height:"100%",background:pct>60?"#ff4757":pct>30?"#ffa502":"#2ed573",borderRadius:50,transition:"width 0.5s"}}/>
-                          </div>
-                          <div style={{width:70,fontSize:13,color:"#888",flexShrink:0,textAlign:"right"}}>{allergenCounts[a]}종 ({pct}%)</div>
+                          <span className="card-arrow">›</span>
                         </div>
                       );
                     })}
                   </div>
+              }
+            </React.Fragment>
+          )}
+
+          {/* ── 관리 탭 ── */}
+          {tab==="manage" && !isManageLocked && (
+            <React.Fragment>
+              <div className="pw-manage">
+                <span className="pw-manage-label">🔑 관리자 잠금</span>
+                <span className="lock-status unlocked">🔓 잠금 해제됨</span>
+                <button className="btn btn-secondary" style={{padding:"6px 14px",fontSize:12,marginLeft:8}} onClick={()=>{setShowChangePwModal(true);setNewPwInput("");setNewPwConfirm("");setPwChangeError("");}}>비밀번호 변경</button>
+                <button className="btn btn-danger" style={{padding:"6px 14px",fontSize:12,marginLeft:4}} onClick={lockManage}>잠금</button>
+              </div>
+              <div className="manage-section">
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+                  <div className="manage-title">제품 목록 ({products.length}종)</div>
+                  <div style={{display:"flex",gap:8}}>
+                    <button className="btn btn-success" onClick={exportExcel}>⬇ 엑셀 다운로드</button>
+                    <button className="btn btn-primary" onClick={openNew}>+ 새 제품 추가</button>
+                  </div>
                 </div>
-              </React.Fragment>
-            )}
+                <div style={{overflowX:"auto"}}>
+                  <table className="manage-table">
+                    <thead><tr>
+                      <th style={{minWidth:160}}>제품이름</th>
+                      <th style={{minWidth:140}}>카테고리</th>
+                      <th style={{minWidth:200}}>주요 알레르기</th>
+                      <th style={{minWidth:100}}>관리</th>
+                    </tr></thead>
+                    <tbody>
+                      {products.map(p=>{
+                        const al=getProductAllergens(p);
+                        return(
+                          <tr key={p._id}>
+                            <td style={{fontWeight:600}}>{p["제품이름"]}</td>
+                            <td><span style={{background:(CAT_COLORS[p["카테고리"]]||"#ddd")+"22",color:"#555",padding:"2px 10px",borderRadius:50,fontSize:11,fontWeight:600}}>{p["카테고리"]||"미분류"}</span></td>
+                            <td>
+                              {al.length===0 ? <span style={{color:"#ccc",fontSize:12}}>없음</span>
+                                : al.slice(0,5).map(a=><span key={a} style={{display:"inline-block",margin:"1px 2px",background:"#fff3cd",color:"#856404",padding:"1px 7px",borderRadius:50,fontSize:11,fontWeight:600,border:"1px solid #ffc107"}}>{a}</span>)}
+                              {al.length>5 && <span style={{fontSize:11,color:"#aaa"}}> +{al.length-5}</span>}
+                            </td>
+                            <td><div className="action-btns">
+                              <button className="btn-sm btn-sm-edit" onClick={()=>openEdit(p)}>수정</button>
+                              <button className="btn-sm btn-sm-del" onClick={()=>deleteProduct(p._id)}>삭제</button>
+                            </div></td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </React.Fragment>
+          )}
+
+          {/* ── 통계 탭 ── */}
+          {tab==="stats" && (
+            <React.Fragment>
+              <div className="stats-row">
+                {CATEGORIES.filter(c=>c!=="전체").map(c=>{
+                  const cnt=products.filter(p=>p["카테고리"]===c).length;
+                  return(<div key={c} className="stat-card"><div className="stat-num" style={{color:CAT_COLORS[c]||"#333"}}>{cnt}</div><div className="stat-label">{c||"미분류"}</div></div>);
+                })}
+              </div>
+              <div className="manage-section">
+                <div className="manage-title">알레르기별 포함 제품 수</div>
+                <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                  {[...ALLERGENS].sort((a,b)=>allergenCounts[b]-allergenCounts[a]).map(a=>{
+                    const pct=products.length>0?Math.round(allergenCounts[a]/products.length*100):0;
+                    return(<div key={a} style={{display:"flex",alignItems:"center",gap:12}}>
+                      <div style={{width:70,fontSize:13,fontWeight:600,color:"#555",flexShrink:0}}>{a}</div>
+                      <div style={{flex:1,background:"#f0f0f0",borderRadius:50,height:16,overflow:"hidden"}}>
+                        <div style={{width:`${pct}%`,height:"100%",background:pct>60?"#ff4757":pct>30?"#ffa502":"#2ed573",borderRadius:50,transition:"width .5s"}}/>
+                      </div>
+                      <div style={{width:70,fontSize:13,color:"#888",flexShrink:0,textAlign:"right"}}>{allergenCounts[a]}종 ({pct}%)</div>
+                    </div>);
+                  })}
+                </div>
+              </div>
+            </React.Fragment>
+          )}
+        </div>
+
+        {/* 상세 모달 */}
+        {selectedProduct && (
+          <div className="modal-overlay" onClick={()=>setSelectedProduct(null)}>
+            <div className="modal" onClick={e=>e.stopPropagation()}>
+              <div className="modal-header">
+                <div className="modal-title">{selectedProduct["제품이름"]}</div>
+                <button className="close-btn" onClick={()=>setSelectedProduct(null)}>×</button>
+              </div>
+              <span className="detail-cat" style={{background:(CAT_COLORS[selectedProduct["카테고리"]]||"#ddd")+"33",color:"#555",border:`1px solid ${(CAT_COLORS[selectedProduct["카테고리"]]||"#ddd")}55`}}>
+                {selectedProduct["카테고리"]||"미분류"}
+              </span>
+              <div style={{fontSize:13,color:"#888",marginBottom:16}}>포함 알레르기: <strong style={{color:"#c62828"}}>{getProductAllergens(selectedProduct).length}가지</strong></div>
+              <div className="allergen-grid">
+                {ALLERGENS.map(a=>(
+                  <div key={a} className={`allergen-item ${selectedProduct[a]==="Yes"?"yes":"no"}`}>
+                    <div className={`allergen-dot ${selectedProduct[a]==="Yes"?"yes":"no"}`}/><span>{a}</span>
+                  </div>
+                ))}
+              </div>
+              <div style={{marginTop:20,display:"flex",gap:8,justifyContent:"flex-end"}}>
+                <button className="btn btn-secondary" onClick={()=>setSelectedProduct(null)}>닫기</button>
+                {!isManageLocked && <button className="btn btn-primary" onClick={()=>{setSelectedProduct(null);setTab("manage");openEdit(selectedProduct);}}>수정하기</button>}
+              </div>
+            </div>
           </div>
+        )}
 
-          {/* ── 제품 상세 모달 ── */}
-          {selectedProduct && (
-            <div className="modal-overlay" onClick={() => setSelectedProduct(null)}>
-              <div className="modal" onClick={e => e.stopPropagation()}>
-                <div className="modal-header">
-                  <div className="modal-title">{selectedProduct["제품이름"]}</div>
-                  <button className="close-btn" onClick={() => setSelectedProduct(null)}>×</button>
+        {/* 추가/수정 폼 모달 */}
+        {showForm && formData && (
+          <div className="modal-overlay" onClick={()=>setShowForm(false)}>
+            <div className="modal" onClick={e=>e.stopPropagation()}>
+              <div className="modal-header">
+                <div className="modal-title">{editProduct?"제품 수정":"새 제품 추가"}</div>
+                <button className="close-btn" onClick={()=>setShowForm(false)}>×</button>
+              </div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label">제품이름 *</label>
+                  <input className="form-input" value={formData["제품이름"]} onChange={e=>setFormData(f=>({...f,"제품이름":e.target.value}))} placeholder="제품이름 입력"/>
                 </div>
-                <span className="detail-cat" style={{background:CAT_COLORS[selectedProduct["카테고리"]]+"33",color:"#555",border:`1px solid ${CAT_COLORS[selectedProduct["카테고리"]]||"#ddd"}55`}}>
-                  {selectedProduct["카테고리"] || "미분류"}
-                </span>
-                <div style={{fontSize:13,color:"#888",marginBottom:16}}>
-                  포함 알레르기: <strong style={{color:"#c62828"}}>{getProductAllergens(selectedProduct).length}가지</strong>
-                </div>
-                <div className="allergen-grid">
-                  {ALLERGENS.map(a => (
-                    <div key={a} className={`allergen-item ${selectedProduct[a]==="Yes"?"yes":"no"}`}>
-                      <div className={`allergen-dot ${selectedProduct[a]==="Yes"?"yes":"no"}`}/>
-                      <span>{a}</span>
-                    </div>
-                  ))}
-                </div>
-                <div style={{marginTop:20,display:"flex",gap:8,justifyContent:"flex-end"}}>
-                  <button className="btn btn-secondary" onClick={() => setSelectedProduct(null)}>닫기</button>
-                  {!isManageLocked && (
-                    <button className="btn btn-primary" onClick={() => { setSelectedProduct(null); setTab("manage"); openEdit(selectedProduct); }}>수정하기</button>
-                  )}
+                <div className="form-group">
+                  <label className="form-label">카테고리</label>
+                  <select className="form-select" value={formData["카테고리"]} onChange={e=>setFormData(f=>({...f,"카테고리":e.target.value}))}>
+                    {CATEGORIES.filter(c=>c!=="전체").map(c=><option key={c} value={c}>{c}</option>)}
+                    <option value="">미분류</option>
+                  </select>
                 </div>
               </div>
-            </div>
-          )}
-
-          {/* ── 제품 추가/수정 폼 모달 ── */}
-          {showForm && formData && (
-            <div className="modal-overlay" onClick={() => setShowForm(false)}>
-              <div className="modal" onClick={e => e.stopPropagation()}>
-                <div className="modal-header">
-                  <div className="modal-title">{editProduct !== null ? "제품 수정" : "새 제품 추가"}</div>
-                  <button className="close-btn" onClick={() => setShowForm(false)}>×</button>
-                </div>
-                <div className="form-row">
-                  <div className="form-group">
-                    <label className="form-label">제품이름 *</label>
-                    <input className="form-input" value={formData["제품이름"]} onChange={e => setFormData(f=>({...f,"제품이름":e.target.value}))} placeholder="제품이름 입력" />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">카테고리</label>
-                    <select className="form-select" value={formData["카테고리"]} onChange={e => setFormData(f=>({...f,"카테고리":e.target.value}))}>
-                      {CATEGORIES.filter(c=>c!=="전체").map(c => <option key={c} value={c}>{c}</option>)}
-                      <option value="">미분류</option>
-                    </select>
-                  </div>
-                </div>
-                <div className="form-label" style={{marginBottom:10}}>알레르기 유발물질 (포함된 항목 선택)</div>
-                <div className="allergen-form-grid">
-                  {ALLERGENS.map(a => (
-                    <button key={a} className={`allergen-toggle ${formData[a]==="Yes"?"on":""}`} onClick={() => setFormData(f=>({...f,[a]:f[a]==="Yes"?"No":"Yes"}))}>
-                      {a}
-                    </button>
-                  ))}
-                </div>
-                <div style={{display:"flex",gap:8,justifyContent:"flex-end",marginTop:8}}>
-                  <button className="btn btn-secondary" onClick={() => setShowForm(false)}>취소</button>
-                  <button className="btn btn-primary" onClick={saveForm} disabled={saving}>
-                    {saving ? "저장 중..." : (editProduct !== null ? "저장" : "추가")}
+              <div className="form-label" style={{marginBottom:10}}>알레르기 유발물질</div>
+              <div className="allergen-form-grid">
+                {ALLERGENS.map(a=>(
+                  <button key={a} className={`allergen-toggle ${formData[a]==="Yes"?"on":""}`} onClick={()=>setFormData(f=>({...f,[a]:f[a]==="Yes"?"No":"Yes"}))}>
+                    {a}
                   </button>
-                </div>
+                ))}
+              </div>
+              <div style={{display:"flex",gap:8,justifyContent:"flex-end",marginTop:8}}>
+                <button className="btn btn-secondary" onClick={()=>setShowForm(false)}>취소</button>
+                <button className="btn btn-primary" onClick={saveForm} disabled={saving}>{saving?"저장 중...":(editProduct?"저장":"추가")}</button>
               </div>
             </div>
-          )}
-        </React.Fragment>
-      );
-    }
+          </div>
+        )}
+      </React.Fragment>
+    );
+  }
 
-    const root = ReactDOM.createRoot(document.getElementById('root'));
-    root.render(<App />);
-  </script>
+  ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
 </body>
 </html>
