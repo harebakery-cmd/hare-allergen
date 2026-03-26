@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>알레르기 유발물질 관리 시스템</title>
 
-  <!-- 즉시 렌더링되는 로딩 스플래시 -->
+  <!-- 즉시 렌더링되는 로딩 스플래시 (스크립트 로드 전부터 표시) -->
   <style>
     #splash{position:fixed;inset:0;background:#f7f3ee;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;z-index:9999;transition:opacity .35s ease}
     #splash.hide{opacity:0;pointer-events:none}
@@ -17,7 +17,7 @@
     @keyframes sslide{0%{transform:translateX(-100%)}100%{transform:translateX(260%)}}
   </style>
 
-  <!-- Google Fonts: display=swap → 폰트 로딩 중 시스템 폰트 먼저 표시 -->
+  <!-- Google Fonts: display=swap → 폰트 로딩 전 시스템 폰트 먼저 표시 -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=Montserrat:wght@700;900&display=swap" rel="stylesheet" />
@@ -34,21 +34,20 @@
       messagingSenderId: "988530050491",
       appId:             "1:988530050491:web:7fae0173b5c83f471b709e"
     });
-    const _db = firebase.firestore();
-    // ✅ 오프라인 캐시: 재방문 시 즉시 데이터 표시 (네트워크 없어도 동작)
-    _db.enablePersistence({synchronizeTabs: true}).catch(()=>{});
+    var _db = firebase.firestore();
+    // ✅ 오프라인 캐시: 재방문 시 즉시 데이터 표시
+    _db.enablePersistence({synchronizeTabs: true}).catch(function(){});
     window.__db = _db;
-    // 스플래시 숨김 함수
     window.__hideSplash = function() {
-      const el = document.getElementById('splash');
-      if (el) { el.classList.add('hide'); setTimeout(()=>el.remove(), 400); }
+      var el = document.getElementById('splash');
+      if (el) { el.classList.add('hide'); setTimeout(function(){el.remove();}, 400); }
     };
   </script>
 
-  <!-- React / ReactDOM: defer → HTML 파싱 완료 후 순서대로 실행 (블로킹 없음) -->
+  <!-- React / ReactDOM: defer로 비블로킹 로드 (src가 있는 외부 스크립트는 defer 정상 작동) -->
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
-  <!-- ✅ SheetJS 제거: 엑셀 다운로드 버튼 클릭 시에만 동적 로드 -->
+  <!-- SheetJS: 엑셀 다운로드 버튼 클릭 시에만 동적 로드 (초기 로딩 ~800KB 절약) -->
 
   <style>
 
@@ -183,10 +182,18 @@
   </div>
   <div id="root"></div>
 
-  <!-- ✅ Babel 완전 제거 - 미리 컴파일된 코드 사용 (800KB 절약) -->
-  <!-- defer: React/ReactDOM 로드 완료 후 실행 보장 -->
-  <script defer>
-const {
+  <!--
+    ✅ Babel 완전 제거 (800KB 절약): JSX를 미리 컴파일한 순수 JS
+    ✅ 인라인 스크립트에 defer 미사용: waitForReact()로 React 로드 후 실행 보장
+    ✅ </script> 문자열 이스케이프 처리
+  -->
+  <script>
+
+(function waitForReact() {
+  if (typeof React === "undefined" || typeof ReactDOM === "undefined") {
+    return setTimeout(waitForReact, 20);
+  }
+  const {
   useState,
   useMemo,
   useEffect,
@@ -5863,6 +5870,8 @@ function App() {
   }, saving ? "저장 중..." : editProduct ? "저장" : "추가")))));
 }
 ReactDOM.createRoot(document.getElementById('root')).render(/*#__PURE__*/React.createElement(App, null));
+
+})();
 
   </script>
 </body>
