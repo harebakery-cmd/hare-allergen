@@ -26,7 +26,7 @@
 
   <!-- ✅ Preload: 브라우저가 즉시 병렬 다운로드 시작 -->
   <link rel="preload" href="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js" as="script" />
-  <link rel="preload" href="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js" as="script" />
+  <link rel="preload" href="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js" as="script" />
   <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" as="script" />
   <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js" as="script" />
 
@@ -36,10 +36,11 @@
       var el = document.getElementById('splash');
       if (el) { el.classList.add('hide'); setTimeout(function(){el.remove();}, 400); }
     };
-    // Firebase 설정을 미리 저장해두고, 스크립트 로드 후 초기화
+    // Firebase 설정 (Realtime Database databaseURL 포함)
     window.__firebaseConfig = {
       apiKey:            "AIzaSyB-1hk5BHsqf70Eo23_YGe5R7lV4_xTh9I",
       authDomain:        "hare-allergen.firebaseapp.com",
+      databaseURL:       "https://hare-allergen-default-rtdb.asia-southeast1.firebasedatabase.app",
       projectId:         "hare-allergen",
       storageBucket:     "hare-allergen.firebasestorage.app",
       messagingSenderId: "988530050491",
@@ -47,9 +48,9 @@
     };
   </script>
 
-  <!-- ✅ Firebase: defer로 비블로킹 로드 (HTML 파싱과 완전 병렬) -->
+  <!-- ✅ Firebase: defer로 비블로킹 로드 (Realtime Database SDK) -->
   <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-  <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 
   <!-- ✅ React / ReactDOM: defer로 비블로킹 로드 -->
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
@@ -211,9 +212,7 @@
       var app = firebase.apps && firebase.apps.length
         ? firebase.apps[0]
         : firebase.initializeApp(window.__firebaseConfig);
-      var _db = firebase.firestore(app);
-      _db.enablePersistence({synchronizeTabs: true}).catch(function(){});
-      window.__db = _db;
+      window.__db = firebase.database(app);
     } catch(e) {
       console.warn("Firebase init error:", e);
       return setTimeout(waitForReact, 50);
@@ -237,7 +236,7 @@ const CAT_COLORS = {
   "시즌": "#f7dc6f",
   "": "#bdc3c7"
 };
-const DEFAULT_PW = "hare";
+const DEFAULT_PW = "1234";
 const PW_DOC = "__config__";
 const INITIAL_DATA = [{
   "제품이름": "48시간호밀빵",
@@ -5118,63 +5117,44 @@ function App() {
   const initDone = useRef(false);
   useEffect(() => {
     // 비밀번호 로드
-    db.collection("config").doc(PW_DOC).get().then(d => {
-      if (d.exists && d.data().pw) setManagePw(d.data().pw);
+    db.ref("config/pw").get().then(snap => {
+      if (snap.exists()) setManagePw(snap.val());
     });
 
-    // 실시간 구독 - 먼저 캐시에서 빠르게 로드 후 서버 동기화
-    const unsub = db.collection("products").onSnapshot({
-      includeMetadataChanges: false
-    }, async snap => {
-      if (snap.empty && !initDone.current) {
+    // 실시간 구독
+    const ref = db.ref("products");
+    const handler = async snap => {
+      const val = snap.val();
+      if (!val && !initDone.current) {
+        // 최초: 초기 데이터 일괄 업로드
         initDone.current = true;
-        // 최초: 초기 데이터 일괄 업로드 (batch write)
-        const batches = [];
-        let batch = db.batch();
-        let count = 0;
+        const bulk = {};
         INITIAL_DATA.forEach((p, i) => {
-          const ref = db.collection("products").doc("p_" + i);
-          batch.set(ref, {
-            ...p,
-            _id: "p_" + i
-          });
-          count++;
-          if (count === 400) {
-            batches.push(batch);
-            batch = db.batch();
-            count = 0;
-          }
+          bulk["p_" + i] = { ...p, _id: "p_" + i };
         });
-        if (count > 0) batches.push(batch);
-        await Promise.all(batches.map(b => b.commit()));
-      } else if (!snap.empty) {
-        const docs = snap.docs.map(d => ({
-          ...d.data(),
-          _id: d.id
-        }));
-        docs.sort((a, b) => {
-          const na = parseInt(a._id.replace("p_", "")) || 0;
-          const nb = parseInt(b._id.replace("p_", "")) || 0;
+        await db.ref("products").set(bulk);
+      } else if (val) {
+        const docs = Object.values(val).sort((a, b) => {
+          const na = parseInt((a._id || "").replace("p_", "")) || 0;
+          const nb = parseInt((b._id || "").replace("p_", "")) || 0;
           return na - nb;
         });
         setProducts(docs);
         setLoaded(true); if(window.__hideSplash){window.__hideSplash();window.__hideSplash=null;}
       }
-    }, err => {
+    };
+    ref.on("value", handler, err => {
       console.error(err);
       setLoaded(true); if(window.__hideSplash){window.__hideSplash();window.__hideSplash=null;}
     });
-    return unsub;
+    return () => ref.off("value", handler);
   }, []);
   const saveProd = async p => {
     const id = p._id || "p_" + Date.now();
-    await db.collection("products").doc(id).set({
-      ...p,
-      _id: id
-    });
+    await db.ref("products/" + id).set({ ...p, _id: id });
   };
   const delProd = async id => {
-    await db.collection("products").doc(id).delete();
+    await db.ref("products/" + id).remove();
   };
   const getProductAllergens = p => ALLERGENS.filter(a => p[a] === "Yes");
   const sortedProducts = useMemo(() => {
@@ -5237,9 +5217,7 @@ function App() {
   // 품목 숨김/보임 토글
   const toggleHidden = async p => {
     const newVal = !p._hidden;
-    await db.collection("products").doc(p._id).update({
-      _hidden: newVal
-    });
+    await db.ref("products/" + p._id + "/_hidden").set(newVal);
   };
 
   // ── 엑셀 다운로드 ──
@@ -5316,15 +5294,22 @@ function App() {
       setPwChangeError("비밀번호가 일치하지 않습니다.");
       return;
     }
-    setManagePw(newPwInput);
-    await db.collection("config").doc(PW_DOC).set({
-      pw: newPwInput
-    });
-    setShowChangePwModal(false);
-    setNewPwInput("");
-    setNewPwConfirm("");
-    setPwChangeError("");
-    alert("비밀번호가 변경되었습니다.");
+    try {
+      await db.ref("config/pw").set(newPwInput);
+      setManagePw(newPwInput);
+      setShowChangePwModal(false);
+      setNewPwInput("");
+      setNewPwConfirm("");
+      setPwChangeError("");
+      alert("비밀번호가 변경되었습니다.");
+    } catch (e) {
+      console.error("비밀번호 저장 실패:", e);
+      if (e.code === "permission-denied") {
+        setPwChangeError("저장 권한이 없습니다. Firestore 보안 규칙을 확인하세요.");
+      } else {
+        setPwChangeError("저장 실패: " + (e.message || e.code || "알 수 없는 오류"));
+      }
+    }
   };
   if (!loaded) return /*#__PURE__*/React.createElement("div", {
     style: {
