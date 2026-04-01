@@ -79,6 +79,11 @@
     .filter-label{width:100%;font-size:12px;font-weight:700;color:#666;letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px}
     .allergen-chip{padding:5px 12px;border-radius:50px;border:2px solid #e0e0e0;background:white;font-family:'Noto Sans KR',sans-serif;font-size:12px;cursor:pointer;transition:all .15s;color:#555;white-space:nowrap}
     .allergen-chip.selected{background:#ff4757;border-color:#ff4757;color:white;font-weight:700}
+    .allergen-chip.selected-exclude{background:#2ed573;border-color:#2ed573;color:white;font-weight:700}
+    .filter-mode-toggle{display:flex;gap:0;border-radius:50px;overflow:hidden;border:2px solid #1a1a2e;flex-shrink:0}
+    .filter-mode-btn{padding:5px 14px;font-family:'Noto Sans KR',sans-serif;font-size:12px;font-weight:700;cursor:pointer;border:none;background:white;color:#1a1a2e;transition:all .15s}
+    .filter-mode-btn.active-contains{background:#ff4757;color:white}
+    .filter-mode-btn.active-excludes{background:#2ed573;color:white}
     .results-info{font-size:13px;color:#888;margin-bottom:10px}
     .product-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
     .product-card{background:white;border-radius:16px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,.06);cursor:pointer;transition:transform .15s,box-shadow .15s;border:2px solid transparent}
@@ -5096,6 +5101,7 @@ function App() {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("전체");
   const [filterAllergens, setFilterAllergens] = useState([]);
+  const [filterMode, setFilterMode] = useState("contains"); // "contains" | "excludes"
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [editProduct, setEditProduct] = useState(null);
   const [showForm, setShowForm] = useState(false);
@@ -5166,8 +5172,17 @@ function App() {
   }, [products, sortOrder]);
   const filteredProducts = useMemo(() => sortedProducts.filter(p => {
     if (p._hidden) return false; // 숨김 품목 제외
-    return p["제품이름"].includes(search) && (category === "전체" || p["카테고리"] === category) && (filterAllergens.length === 0 || filterAllergens.every(a => p[a] === "Yes"));
-  }), [sortedProducts, search, category, filterAllergens]);
+    if (!p["제품이름"].includes(search)) return false;
+    if (category !== "전체" && p["카테고리"] !== category) return false;
+    if (filterAllergens.length > 0) {
+      if (filterMode === "contains") {
+        if (!filterAllergens.every(a => p[a] === "Yes")) return false;
+      } else {
+        if (filterAllergens.some(a => p[a] === "Yes")) return false;
+      }
+    }
+    return true;
+  }), [sortedProducts, search, category, filterAllergens, filterMode]);
   const allergenCounts = useMemo(() => {
     const c = {};
     ALLERGENS.forEach(a => {
@@ -5473,10 +5488,21 @@ function App() {
   }, "\uC5ED\uC21C \u2193")), /*#__PURE__*/React.createElement("div", {
     className: "allergen-filters"
   }, /*#__PURE__*/React.createElement("div", {
-    className: "filter-label"
-  }, "\uD83D\uDEA8 \uD3EC\uD568 \uC54C\uB808\uB974\uAE30 \uD544\uD130"), ALLERGENS.map(a => /*#__PURE__*/React.createElement("button", {
+    style: {display:"flex", alignItems:"center", justifyContent:"space-between", width:"100%", marginBottom:4}
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "filter-label",
+    style: {margin:0}
+  }, filterMode === "contains" ? "🚨 포함 알레르기 필터" : "✅ 제외 알레르기 필터"), /*#__PURE__*/React.createElement("div", {
+    className: "filter-mode-toggle"
+  }, /*#__PURE__*/React.createElement("button", {
+    className: `filter-mode-btn ${filterMode === "contains" ? "active-contains" : ""}`,
+    onClick: () => { setFilterMode("contains"); setFilterAllergens([]); }
+  }, "포함"), /*#__PURE__*/React.createElement("button", {
+    className: `filter-mode-btn ${filterMode === "excludes" ? "active-excludes" : ""}`,
+    onClick: () => { setFilterMode("excludes"); setFilterAllergens([]); }
+  }, "제외"))), ALLERGENS.map(a => /*#__PURE__*/React.createElement("button", {
     key: a,
-    className: `allergen-chip ${filterAllergens.includes(a) ? "selected" : ""}`,
+    className: `allergen-chip ${filterAllergens.includes(a) ? (filterMode === "excludes" ? "selected-exclude" : "selected") : ""}`,
     onClick: () => setFilterAllergens(prev => prev.includes(a) ? prev.filter(x => x !== a) : [...prev, a])
   }, a, filterAllergens.includes(a) && ` (${allergenCounts[a]})`)), filterAllergens.length > 0 && /*#__PURE__*/React.createElement("button", {
     className: "allergen-chip",
