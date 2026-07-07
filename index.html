@@ -243,47 +243,6 @@ const CAT_COLORS = {
 };
 const DEFAULT_PW = "hare";
 const PW_DOC = "__config__";
-function normalizeProductName(name) {
-  return String(name || "").trim().replace(/\s+/g, " ");
-}
-function hasProductCategory(p) {
-  return String(p && p["카테고리"] || "").trim() !== "";
-}
-function normalizeProductVisibility(p) {
-  return { ...p, _hidden: !hasProductCategory(p) || !!p._hidden };
-}
-function mergeProductRecords(records) {
-  const byName = new Map();
-  records.forEach((raw, idx) => {
-    if (!raw || !raw["제품이름"]) return;
-    const p = normalizeProductVisibility(raw);
-    const key = normalizeProductName(p["제품이름"]).toLowerCase();
-    if (!key) return;
-    const current = byName.get(key);
-    if (!current) {
-      byName.set(key, { ...p, _order: idx });
-      return;
-    }
-    const merged = {
-      ...current,
-      ...p,
-      _id: current._id || p._id,
-      _order: Math.min(current._order, idx),
-      "제품이름": normalizeProductName(current["제품이름"] || p["제품이름"]),
-      "카테고리": current["카테고리"] || p["카테고리"] || "",
-      _hidden: (!hasProductCategory(current) && !hasProductCategory(p)) || (!!current._hidden && !!p._hidden)
-    };
-    ALLERGENS.forEach(a => {
-      merged[a] = current[a] === "Yes" || p[a] === "Yes" ? "Yes" : "No";
-    });
-    byName.set(key, merged);
-  });
-  return Array.from(byName.values()).sort((a, b) => {
-    const na = parseInt((a._id || "").replace("p_", "")) || a._order || 0;
-    const nb = parseInt((b._id || "").replace("p_", "")) || b._order || 0;
-    return na - nb;
-  }).map(({ _order, ...p }) => p);
-}
 const INITIAL_DATA = [{
   "제품이름": "48시간호밀빵",
   "카테고리": "식빵/발효빵/식사빵",
@@ -5162,7 +5121,6 @@ function App() {
   const [manageShowHidden, setManageShowHidden] = useState(true); // true=전체, false=보임만
   const [hideZeroAllergen, setHideZeroAllergen] = useState(false); // 통계에서 0건 숨김
   const initDone = useRef(false);
-  const productRecordsRef = useRef([]);
   useEffect(() => {
     // 비밀번호 로드
     db.ref("config/pw").get().then(snap => {
@@ -5182,9 +5140,11 @@ function App() {
         });
         await db.ref("products").set(bulk);
       } else if (val) {
-        const rawDocs = Object.values(val);
-        productRecordsRef.current = rawDocs;
-        const docs = mergeProductRecords(rawDocs);
+        const docs = Object.values(val).sort((a, b) => {
+          const na = parseInt((a._id || "").replace("p_", "")) || 0;
+          const nb = parseInt((b._id || "").replace("p_", "")) || 0;
+          return na - nb;
+        });
         setProducts(docs);
         setLoaded(true); if(window.__hideSplash){window.__hideSplash();window.__hideSplash=null;}
       }
@@ -5196,18 +5156,8 @@ function App() {
     return () => ref.off("value", handler);
   }, []);
   const saveProd = async p => {
-    const productName = normalizeProductName(p["제품이름"]);
-    const sameNameProducts = productRecordsRef.current.filter(item =>
-      normalizeProductName(item["제품이름"]).toLowerCase() === productName.toLowerCase()
-    );
-    const id = p._id || sameNameProducts[0]?._id || "p_" + Date.now();
-    const next = normalizeProductVisibility({ ...p, "제품이름": productName, _id: id });
-    const updates = {};
-    updates["products/" + id] = next;
-    sameNameProducts.forEach(item => {
-      if (item._id && item._id !== id) updates["products/" + item._id] = null;
-    });
-    await db.ref().update(updates);
+    const id = p._id || "p_" + Date.now();
+    await db.ref("products/" + id).set({ ...p, _id: id });
   };
   const delProd = async id => {
     await db.ref("products/" + id).remove();
@@ -5264,14 +5214,10 @@ function App() {
     }
     setSaving(true);
     try {
-      const nextFormData = normalizeProductVisibility({
-        ...formData,
-        _hidden: hasProductCategory(formData) ? false : formData._hidden
-      });
       await saveProd(editProduct ? {
-        ...nextFormData,
+        ...formData,
         _id: editProduct
-      } : nextFormData);
+      } : formData);
       setShowForm(false);
     } catch (e) {
       alert("저장 실패: " + e.message);
