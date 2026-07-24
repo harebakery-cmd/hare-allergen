@@ -139,6 +139,11 @@
     .btn-success:hover{background:#26bc62}
     .manage-table{width:100%;border-collapse:collapse;font-size:13px}
     .manage-table th{background:#1a1a2e;color:white;padding:10px 12px;text-align:left;font-weight:700}
+    .manage-sort-header{display:inline-flex;align-items:center;gap:7px;padding:0;border:0;background:transparent;
+      color:inherit;font:inherit;font-weight:800;cursor:pointer}
+    .manage-sort-header:hover{color:#7ee2aa}
+    .manage-sort-arrow{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;
+      border:1px solid rgba(255,255,255,.45);border-radius:50%;font-size:10px;line-height:1}
     .manage-table th:first-child{border-radius:10px 0 0 0}
     .manage-table th:last-child{border-radius:0 10px 0 0}
     .manage-table td{padding:10px 12px;border-bottom:1px solid #f0f0f0;vertical-align:middle}
@@ -5119,6 +5124,7 @@ function App() {
   const [pwChangeError, setPwChangeError] = useState("");
   // 관리탭: 숨김 필터 상태
   const [manageShowHidden, setManageShowHidden] = useState(true); // true=전체, false=보임만
+  const [manageSortOrder, setManageSortOrder] = useState("asc"); // asc=ㄱ→ㅎ, desc=ㅎ→ㄱ
   const [hideZeroAllergen, setHideZeroAllergen] = useState(false); // 통계에서 0건 숨김
   const initDone = useRef(false);
   useEffect(() => {
@@ -5170,6 +5176,14 @@ function App() {
       return sortOrder === "asc" ? c : -c;
     });
   }, [products, sortOrder]);
+  const managedProducts = useMemo(() => {
+    return [...products].filter(p => manageShowHidden || !p._hidden).sort((a, b) => {
+      const aName = String(a["제품이름"] || "");
+      const bName = String(b["제품이름"] || "");
+      const compared = aName.localeCompare(bName, "ko");
+      return manageSortOrder === "asc" ? compared : -compared;
+    });
+  }, [products, manageShowHidden, manageSortOrder]);
   const filteredProducts = useMemo(() => sortedProducts.filter(p => {
     if (p._hidden) return false; // 숨김 품목 제외
     if (!p["제품이름"].includes(search)) return false;
@@ -5628,7 +5642,16 @@ function App() {
     style: {
       minWidth: 160
     }
-  }, "\uC81C\uD488\uC774\uB984"), /*#__PURE__*/React.createElement("th", {
+  }, /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    className: "manage-sort-header",
+    onClick: () => setManageSortOrder(order => order === "asc" ? "desc" : "asc"),
+    title: manageSortOrder === "asc" ? "현재 ㄱ→ㅎ 순서 · 클릭하면 ㅎ→ㄱ" : "현재 ㅎ→ㄱ 순서 · 클릭하면 ㄱ→ㅎ",
+    "aria-label": manageSortOrder === "asc" ? "제품이름 ㄱ에서 ㅎ 순서, 역순으로 변경" : "제품이름 ㅎ에서 ㄱ 순서, 가나다순으로 변경"
+  }, "\uC81C\uD488\uC774\uB984 ", /*#__PURE__*/React.createElement("span", {
+    className: "manage-sort-arrow",
+    "aria-hidden": "true"
+  }, manageSortOrder === "asc" ? "\u25B2" : "\u25BC"))), /*#__PURE__*/React.createElement("th", {
     style: {
       minWidth: 140
     }
@@ -5644,7 +5667,7 @@ function App() {
     style: {
       minWidth: 100
     }
-  }, "\uAD00\uB9AC"))), /*#__PURE__*/React.createElement("tbody", null, products.filter(p => manageShowHidden || !p._hidden).map(p => {
+  }, "\uAD00\uB9AC"))), /*#__PURE__*/React.createElement("tbody", null, managedProducts.map(p => {
     const al = getProductAllergens(p);
     return /*#__PURE__*/React.createElement("tr", {
       key: p._id,
