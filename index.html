@@ -5288,13 +5288,25 @@ function App() {
           document.head.appendChild(s);
         });
       }
-    const cols = ["제품이름", "카테고리", ...ALLERGENS];
+    const cols = ["제품이름", "카테고리", "판매금액", "원산지 1순위", "원산지 2순위", "원산지 3순위", ...ALLERGENS];
     const header = cols;
-    const rows = products.map(p => cols.map(c => p[c] || ""));
+    const rows = products.map(p => [
+      p["제품이름"] || "",
+      p["카테고리"] || "",
+      p["판매금액"] ?? "",
+      getOriginText(p["원산지"], 0),
+      getOriginText(p["원산지"], 1),
+      getOriginText(p["원산지"], 2),
+      ...ALLERGENS.map(a => p[a] || "")
+    ]);
     const ws = XLSX.utils.aoa_to_sheet([header, ...rows]);
     // 열 너비 설정
-    ws['!cols'] = cols.map((c, i) => ({
-      wch: i === 0 ? 24 : i === 1 ? 22 : 8
+    ws['!cols'] = cols.map(c => ({
+      wch: c === "제품이름" ? 24
+        : c === "카테고리" ? 22
+        : c === "판매금액" ? 12
+        : c.startsWith("원산지") ? 42
+        : 8
     }));
     // 헤더 행 스타일 (배경색)
     const range = XLSX.utils.decode_range(ws['!ref']);
