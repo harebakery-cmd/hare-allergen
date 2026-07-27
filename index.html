@@ -127,6 +127,10 @@
     .form-label{font-size:12px;font-weight:700;color:#555}
     .form-input,.form-select{padding:10px 14px;border-radius:10px;border:2px solid #e0e0e0;font-family:'Noto Sans KR',sans-serif;font-size:14px;outline:none;transition:border .2s;width:100%}
     .form-input:focus,.form-select:focus{border-color:#1a1a2e}
+    .manage-private-section{margin:14px 0 18px;padding:16px;border:1px solid #e7dccb;border-radius:14px;background:linear-gradient(135deg,#fffaf2 0%,#fff 100%)}
+    .manage-private-title{font-size:13px;font-weight:900;color:#8a5a16;margin-bottom:4px}
+    .manage-private-note{font-size:11px;color:#927a59;margin-bottom:12px}
+    .origin-form-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
     .allergen-form-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px}
     .allergen-toggle{display:flex;align-items:center;gap:6px;padding:8px 10px;border-radius:10px;border:2px solid #e0e0e0;cursor:pointer;transition:all .15s;font-size:12px;background:white;font-family:'Noto Sans KR',sans-serif}
     .allergen-toggle.on{border-color:#ff4757;background:#ffebee;color:#c62828;font-weight:700}
@@ -182,6 +186,7 @@
     @media(max-width:600px){
       .allergen-form-grid{grid-template-columns:repeat(3,1fr)}
       .form-row{grid-template-columns:1fr}
+      .origin-form-grid{grid-template-columns:1fr}
       .allergen-grid{grid-template-columns:repeat(2,1fr)}
     }
   
@@ -5161,6 +5166,24 @@ function App() {
     });
     return () => ref.off("value", handler);
   }, []);
+  const getOriginText = (origin, index) => {
+    const item = Array.isArray(origin) ? origin[index] : null;
+    if (!item) return "";
+    if (typeof item === "string") return item;
+    if (item.text) return item.text;
+    if (item.name || item.country) return (item.name || "") + (item.country ? "(" + item.country + ")" : "");
+    return "";
+  };
+  const setFormOriginText = (index, value) => {
+    setFormData(current => {
+      const origin = Array.isArray(current["원산지"]) ? [...current["원산지"]] : [];
+      const previous = origin[index];
+      origin[index] = previous && typeof previous === "object"
+        ? { ...previous, rank: index + 1, text: value }
+        : { rank: index + 1, text: value };
+      return { ...current, "원산지": origin };
+    });
+  };
   const saveProd = async p => {
     const id = p._id || "p_" + Date.now();
     await db.ref("products/" + id).set({ ...p, _id: id });
@@ -5207,7 +5230,13 @@ function App() {
   const openNew = () => {
     const b = {
       "제품이름": "",
-      "카테고리": "일반빵"
+      "카테고리": "일반빵",
+      "판매금액": 0,
+      "원산지": [
+        { rank: 1, text: "" },
+        { rank: 2, text: "" },
+        { rank: 3, text: "" }
+      ]
     };
     ALLERGENS.forEach(a => b[a] = "No");
     setFormData(b);
@@ -5657,6 +5686,14 @@ function App() {
     }
   }, "\uCE74\uD14C\uACE0\uB9AC"), /*#__PURE__*/React.createElement("th", {
     style: {
+      minWidth: 100
+    }
+  }, "\uD310\uB9E4\uAE08\uC561"), /*#__PURE__*/React.createElement("th", {
+    style: {
+      minWidth: 260
+    }
+  }, "\uC6D0\uC0B0\uC9C0"), /*#__PURE__*/React.createElement("th", {
+    style: {
       minWidth: 200
     }
   }, "\uC8FC\uC694 \uC54C\uB808\uB974\uAE30"), /*#__PURE__*/React.createElement("th", {
@@ -5687,7 +5724,18 @@ function App() {
         fontSize: 11,
         fontWeight: 600
       }
-    }, p["카테고리"] || "미분류")), /*#__PURE__*/React.createElement("td", null, al.length === 0 ? /*#__PURE__*/React.createElement("span", {
+    }, p["카테고리"] || "미분류")), /*#__PURE__*/React.createElement("td", {
+      style: {
+        fontWeight: 700,
+        whiteSpace: "nowrap"
+      }
+    }, p["판매금액"] ? Number(p["판매금액"]).toLocaleString("ko-KR") + "원" : "-"), /*#__PURE__*/React.createElement("td", {
+      style: {
+        fontSize: 11,
+        color: "#666",
+        lineHeight: 1.55
+      }
+    }, [0, 1, 2].map(i => getOriginText(p["원산지"], i)).filter(Boolean).join(" / ") || "-"), /*#__PURE__*/React.createElement("td", null, al.length === 0 ? /*#__PURE__*/React.createElement("span", {
       style: {
         color: "#ccc",
         fontSize: 12
@@ -5900,6 +5948,41 @@ function App() {
   }, c)), /*#__PURE__*/React.createElement("option", {
     value: ""
   }, "\uBBF8\uBD84\uB958")))), /*#__PURE__*/React.createElement("div", {
+    className: "manage-private-section"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "manage-private-title"
+  }, "\uAD00\uB9AC\uC790 \uC804\uC6A9 \uD310\uB9E4 \uC815\uBCF4"), /*#__PURE__*/React.createElement("div", {
+    className: "manage-private-note"
+  }, "\uC5EC\uAE30\uC11C \uC800\uC7A5\uD55C \uAE08\uC561\uACFC \uC6D0\uC0B0\uC9C0\uB294 \uC1FC\uCE74\uB4DC\uC5D0\uB9CC \uC0AC\uC6A9\uB418\uBA70, \uACE0\uAC1D\uC6A9 \uC54C\uB808\uB974\uAE30 \uD654\uBA74\uC5D0\uB294 \uD45C\uC2DC\uB418\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4."), /*#__PURE__*/React.createElement("div", {
+    className: "form-row"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "form-group"
+  }, /*#__PURE__*/React.createElement("label", {
+    className: "form-label"
+  }, "\uD310\uB9E4\uAE08\uC561"), /*#__PURE__*/React.createElement("input", {
+    className: "form-input",
+    type: "number",
+    min: "0",
+    step: "100",
+    value: formData["\uD310\uB9E4\uAE08\uC561"] ?? "",
+    onChange: e => setFormData(f => ({
+      ...f,
+      "\uD310\uB9E4\uAE08\uC561": Number(e.target.value) || 0
+    })),
+    placeholder: "\uC608) 3800"
+  }))), /*#__PURE__*/React.createElement("div", {
+    className: "origin-form-grid"
+  }, [0, 1, 2].map(index => /*#__PURE__*/React.createElement("div", {
+    className: "form-group",
+    key: index
+  }, /*#__PURE__*/React.createElement("label", {
+    className: "form-label"
+  }, `\uC6D0\uC0B0\uC9C0 ${index + 1}\uC21C\uC704`), /*#__PURE__*/React.createElement("input", {
+    className: "form-input",
+    value: getOriginText(formData["\uC6D0\uC0B0\uC9C0"], index),
+    onChange: e => setFormOriginText(index, e.target.value),
+    placeholder: index === 0 ? "\uC608) \uBC00\uAC00\uB8E8(\uBC00:\uBBF8\uAD6D,\uCE90\uB098\uB2E4\uC0B0)" : "\uC6D0\uC0B0\uC9C0 \uBB38\uAD6C \uC785\uB825"
+  }))))), /*#__PURE__*/React.createElement("div", {
     className: "form-label",
     style: {
       marginBottom: 10
