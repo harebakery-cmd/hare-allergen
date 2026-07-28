@@ -332,6 +332,38 @@
       .allergen-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
       .stats-row{grid-template-columns:repeat(2,minmax(0,1fr))}
       .stats-allergen-row{grid-template-columns:70px minmax(0,1fr) 76px;gap:8px;font-size:12px}
+      .manage-section{padding:16px}
+      .manage-section:has(.manage-list-heading){margin-left:-4px;margin-right:-4px;padding:12px}
+      .manage-list-heading{display:grid!important;grid-template-columns:1fr!important;gap:12px;align-items:stretch!important}
+      .manage-list-heading .manage-title{margin-bottom:0;font-size:18px}
+      .manage-list-actions{display:grid!important;grid-template-columns:1fr 1fr;gap:8px!important}
+      .manage-list-actions .btn{min-width:0;padding:11px 8px;font-size:13px;line-height:1.35}
+      .manage-filters{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+      .manage-filters>span:first-child,.manage-filters>span:last-child{grid-column:1/-1;margin-left:0!important}
+      .manage-filter-btn{width:100%;padding:9px 8px}
+      .manage-table-scroll{overflow:visible!important}
+      .manage-table,.manage-table tbody{display:block;width:100%}
+      .manage-table thead{display:none}
+      .manage-table tbody{display:grid;gap:10px}
+      .manage-table tr{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px 10px;padding:16px;border:1px solid var(--mist);border-radius:12px;background:var(--cream)}
+      .manage-table tr:hover td{background:transparent}
+      .manage-table td{min-width:0;padding:0!important;border:0!important}
+      .manage-table td:nth-child(1){grid-column:1;font-size:15px;line-height:1.45;overflow-wrap:anywhere}
+      .manage-table td:nth-child(2){grid-column:2;justify-self:end;align-self:start}
+      .manage-table td:nth-child(n+3){grid-column:1/-1;display:flex;align-items:flex-start;flex-wrap:wrap;gap:5px;padding-top:11px!important;border-top:1px solid #f0f0f0!important;color:#404040!important;font-size:12px!important;line-height:1.55!important}
+      .manage-table td:nth-child(n+3)::before{min-width:68px;margin-right:auto;color:var(--muted);font-size:11px;font-weight:500}
+      .manage-table td:nth-child(3)::before{content:"판매금액"}
+      .manage-table td:nth-child(4)::before{content:"원산지";width:100%;margin-right:0}
+      .manage-table td:nth-child(5)::before{content:"알레르기";width:100%;margin-right:0}
+      .manage-table td:nth-child(6)::before{content:"조회 표시"}
+      .manage-table td:nth-child(7)::before{content:"제품 관리";width:100%;margin-right:0}
+      .manage-table td:nth-child(4){display:block;overflow-wrap:anywhere}
+      .manage-table td:nth-child(4)::before{display:block;margin-bottom:5px}
+      .manage-table td:nth-child(7){padding-top:12px!important}
+      .manage-table .action-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%}
+      .manage-table .btn-sm{min-height:38px;padding:8px 10px;font-size:12px}
+      .manage-table tr.hidden-row{opacity:.72}
+      .manage-table tr.hidden-row td{opacity:1}
       .store-add-row{grid-template-columns:1fr 44px}
       .store-add-row .btn{grid-column:1/-1}
     }
@@ -5999,6 +6031,7 @@ function App() {
   }, "\uC0AD\uC81C")))), /*#__PURE__*/React.createElement("div", {
     className: "manage-section"
   }, /*#__PURE__*/React.createElement("div", {
+    className: "manage-list-heading",
     style: {
       display: "flex",
       justifyContent: "space-between",
@@ -6008,6 +6041,7 @@ function App() {
   }, /*#__PURE__*/React.createElement("div", {
     className: "manage-title"
   }, "\uC81C\uD488 \uBAA9\uB85D (", products.length, "\uC885)"), /*#__PURE__*/React.createElement("div", {
+    className: "manage-list-actions",
     style: {
       display: "flex",
       gap: 8
@@ -6039,6 +6073,7 @@ function App() {
       marginLeft: 4
     }
   }, "(\uC228\uAE40: ", products.filter(p => p._hidden).length, "\uC885)")), /*#__PURE__*/React.createElement("div", {
+    className: "manage-table-scroll",
     style: {
       overflowX: "auto"
     }
