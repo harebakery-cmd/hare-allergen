@@ -7,12 +7,12 @@
 
   <!-- 즉시 렌더링되는 로딩 스플래시 (스크립트 로드 전부터 표시) -->
   <style>
-    #splash{position:fixed;inset:0;background:#f7f3ee;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;z-index:9999;transition:opacity .35s ease}
+    #splash{position:fixed;inset:0;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;z-index:9999;transition:opacity .35s ease}
     #splash.hide{opacity:0;pointer-events:none}
     .s-icon{font-size:44px;animation:sbounce .9s ease-in-out infinite alternate}
     .s-text{font-size:15px;color:#555;font-weight:600;font-family:sans-serif}
-    .s-bar{width:180px;height:4px;background:#e0d9d0;border-radius:4px;overflow:hidden}
-    .s-fill{height:100%;background:#1a1a2e;border-radius:4px;animation:sslide 1.3s ease-in-out infinite}
+    .s-bar{width:180px;height:4px;background:#e5e5e5;border-radius:4px;overflow:hidden}
+    .s-fill{height:100%;background:#2563eb;border-radius:4px;animation:sslide 1.3s ease-in-out infinite}
     @keyframes sbounce{from{transform:translateY(0)}to{transform:translateY(-8px)}}
     @keyframes sslide{0%{transform:translateX(-100%)}100%{transform:translateX(260%)}}
   </style>
@@ -22,7 +22,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="dns-prefetch" href="https://www.gstatic.com" />
   <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=Montserrat:wght@700;900&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet" />
 
   <!-- ✅ Preload: 브라우저가 즉시 병렬 다운로드 시작 -->
   <link rel="preload" href="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js" as="script" />
@@ -195,6 +195,146 @@
     .toggle-switch::after{content:"";position:absolute;width:16px;height:16px;background:white;border-radius:50%;top:2px;left:2px;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
     .toggle-switch.on{background:#1a1a2e}
     .toggle-switch.on::after{transform:translateX(16px)}
+
+    /* Dub — rice-paper link dashboard theme */
+    :root{
+      --forest:#171717;
+      --forest-shadow:#0a0a0a;
+      --sage:#dbeafe;
+      --keylime:#f5f5f5;
+      --mint:#f5f5f5;
+      --slate:#f5f5f5;
+      --cream:#ffffff;
+      --charcoal:#171717;
+      --mist:#e5e5e5;
+      --blue:#2563eb;
+      --blue-dark:#1e40af;
+      --blue-wash:#eff6ff;
+      --muted:#737373;
+    }
+    body{font-family:'Inter','Noto Sans KR',sans-serif;background:var(--cream);color:var(--charcoal)}
+    .app{max-width:1200px;padding:0 18px 72px}
+    .header{background:var(--cream);color:var(--forest);padding:26px 4px 20px;margin-bottom:16px;border-bottom:1px solid var(--mist);border-radius:0}
+    .header h1{font-family:'Inter','Noto Sans KR',sans-serif;font-size:26px;font-weight:600;line-height:1.3;letter-spacing:-.035em}
+    .header p{color:var(--muted);font-size:13px;font-weight:400;line-height:1.5}
+    .tab-bar{gap:6px;margin-bottom:18px}
+    .tab-btn,.sort-btn,.manage-filter-btn{border:1px solid var(--mist);background:var(--cream);color:var(--forest);border-radius:8px;box-shadow:none}
+    .tab-btn{padding:9px 18px}
+    .tab-btn.active,.sort-btn.active,.manage-filter-btn.active{background:var(--forest);border-color:var(--forest);color:var(--cream)}
+    .search-row{display:grid;grid-template-columns:minmax(220px,1fr) minmax(160px,220px) minmax(150px,200px) auto auto;gap:8px;background:var(--cream);padding:12px;border:1px solid var(--mist);border-radius:12px}
+    .search-input,.cat-select,.store-select{min-width:0;width:100%;height:42px;padding:9px 12px;border:1px solid #d4d4d4;border-radius:6px;background:var(--cream);color:var(--charcoal);font:inherit;outline:none}
+    .search-input{border-color:#111827}
+    .search-input:focus,.cat-select:focus,.store-select:focus,.form-input:focus,.form-select:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(37,99,235,.12)}
+    .allergen-filters{background:var(--cream);border:1px solid var(--mist);border-radius:12px;box-shadow:none;padding:16px}
+    .filter-label{color:var(--forest);font-size:12px;text-transform:none;letter-spacing:0}
+    .filter-label::before{content:"";display:inline-block;width:3px;height:12px;margin-right:7px;border-radius:2px;background:var(--blue);vertical-align:-1px}
+    .filter-mode-toggle{border:1px solid var(--forest)}
+    .filter-mode-btn{color:var(--forest);background:var(--cream)}
+    .filter-mode-btn.active-contains,.filter-mode-btn.active-excludes{background:var(--forest);color:var(--cream)}
+    .allergen-chip{border:1px solid #d4d4d4;background:var(--cream);color:#404040}
+    .allergen-chip.selected,.allergen-chip.selected-exclude{background:var(--forest);border-color:var(--forest);color:var(--cream)}
+    .product-grid{grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+    .product-card{background:var(--cream);border:1px solid var(--mist);border-radius:12px;box-shadow:none;padding:18px;min-width:0}
+    .product-card:nth-child(3n+2),.product-card:nth-child(3n){background:var(--cream)}
+    .product-card:hover{transform:none;box-shadow:none;border-color:#c8c8c8;background:#fafafa}
+    .product-card.selected{border-color:var(--blue)}
+    .card-header{gap:12px;margin-bottom:13px}
+    .product-name,.modal-title,.manage-title{color:var(--forest)}
+    .product-name{font-size:17px;font-weight:600;line-height:1.45;letter-spacing:-.025em}
+    .cat-badge{border-radius:6px!important;font-size:11px;padding:4px 8px}
+    .allergen-tags{gap:6px;padding-top:12px;border-top:1px solid #f0f0f0}
+    .allergen-tags::before{content:"알레르기";width:100%;color:var(--muted);font-size:11px;font-weight:500;line-height:1.4}
+    .allergen-tag{background:var(--blue-wash);border:0;color:var(--blue-dark);font-size:12px;line-height:1.4;padding:4px 9px}
+    .allergen-tag.danger{background:var(--forest);border-color:var(--forest);color:var(--cream)}
+    .store-dot-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:14px}
+    .store-dot-item{display:inline-flex;align-items:center;gap:6px;color:#404040;font-size:12px;font-weight:500;line-height:1.4}
+    .store-dot{width:10px;height:10px;border-radius:50%;background:var(--store-color,var(--sage));flex:0 0 auto}
+    .product-card .store-dot-row{gap:9px;margin-top:13px}
+    .product-card .store-dot-item{font-size:0;gap:0}
+    .product-card .store-dot{width:10px;height:10px;box-shadow:0 0 0 2px var(--cream),0 0 0 3px #e5e5e5}
+    .store-manage-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px;margin:14px 0}
+    .store-manage-card{display:flex;align-items:center;gap:8px;padding:10px 12px;border:1px solid var(--mist);border-radius:12px;background:var(--cream)}
+    .store-manage-card strong{flex:1;color:var(--forest);font-size:13px}
+    .store-color-input{width:34px;height:30px;border:0;padding:2px;background:transparent;cursor:pointer}
+    .store-add-row{display:grid;grid-template-columns:minmax(160px,1fr) 48px auto;gap:8px;max-width:520px}
+    .store-picker{display:flex;flex-wrap:wrap;gap:7px;margin-top:7px}
+    .store-choice{display:inline-flex;align-items:center;gap:6px;padding:8px 11px;border:1px solid var(--mist);border-radius:999px;background:var(--cream);color:var(--forest);font:inherit;font-size:12px;cursor:pointer}
+    .store-choice.on{background:var(--forest);border-color:var(--forest);color:var(--cream)}
+    .modal,.manage-section,.stat-card,.lock-box{background:var(--cream);border-radius:12px;box-shadow:none;border:1px solid var(--mist)}
+    .stats-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:16px}
+    .stat-card{position:relative;min-width:0;padding:16px;text-align:left;overflow:hidden}
+    .stat-card::before{content:"";position:absolute;inset:0 auto 0 0;width:4px;background:var(--category-color,#d4d4d4)}
+    .stat-num{font-family:'Inter','Noto Sans KR',sans-serif;font-size:26px;font-weight:600;color:var(--forest)}
+    .stat-label{margin-top:5px;color:#525252;font-size:12px;line-height:1.45}
+    .stats-panel{padding:20px}
+    .stats-panel .allergen-zero-toggle{width:100%;border:0;background:transparent;text-align:left;font:inherit}
+    .stats-zero-count{margin-left:4px;color:var(--muted);font-size:11px;font-weight:400}
+    .stats-allergen-list{display:flex;flex-direction:column;gap:10px}
+    .stats-allergen-row{display:grid;grid-template-columns:86px minmax(0,1fr) 92px;align-items:center;gap:12px;font-size:13px}
+    .stats-allergen-row strong{font-weight:600;color:#262626}
+    .stats-allergen-row>span{text-align:right;color:#525252;font-variant-numeric:tabular-nums}
+    .stats-bar{height:10px;border-radius:9999px;background:#f0f0f0;overflow:hidden}
+    .stats-bar i{display:block;height:100%;border-radius:inherit;background:var(--blue);transition:width .35s ease}
+    .modal-overlay{background:rgba(10,10,10,.42)}
+    .modal{width:min(600px,calc(100vw - 32px));flex:0 0 auto;padding:28px;overscroll-behavior:contain}
+    .modal-header{align-items:flex-start;gap:18px;margin-bottom:18px}
+    .modal-title{font-family:'Inter','Noto Sans KR',sans-serif;font-size:24px;font-weight:600;line-height:1.35;letter-spacing:-.035em}
+    .close-btn{width:36px;height:36px;flex:0 0 36px;background:var(--keylime);color:var(--forest);font-size:22px}
+    .detail-cat{margin-bottom:18px;border-radius:6px!important;font-size:12px;padding:5px 9px}
+    .detail-section{padding:18px 0;border-top:1px solid var(--mist)}
+    .detail-section-title{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;color:var(--forest);font-size:13px;font-weight:700}
+    .detail-count{color:#647267;font-size:12px;font-weight:500}
+    .modal .store-dot-row{margin:0;padding:16px 0;gap:10px 14px;border-top:1px solid var(--mist);border-bottom:1px solid var(--mist)}
+    .modal .store-dot-item{font-size:13px;color:#262626}
+    .modal .store-dot-row::before{content:"판매 점포";width:100%;margin-bottom:2px;color:var(--forest);font-size:13px;font-weight:600}
+    .allergen-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+    .allergen-item{min-width:0;justify-content:flex-start;padding:10px 12px;border-radius:10px;font-size:13px;font-weight:600}
+    .allergen-item.yes{background:var(--blue-wash);border:0;color:var(--blue-dark)}
+    .modal .allergen-item.no{display:none}
+    .allergen-dot.yes{background:var(--blue)}
+    .modal .allergen-grid:not(:has(.allergen-item.yes))::after{content:"표시할 알레르기 유발물질이 없습니다.";grid-column:1/-1;padding:14px;border:1px solid var(--mist);border-radius:8px;background:#fafafa;color:var(--muted);font-size:13px}
+    .detail-empty{padding:14px;border-radius:8px;background:#fafafa;color:var(--muted);font-size:13px}
+    .btn,.btn-sm{border-radius:8px}
+    .btn-primary{background:var(--forest);color:var(--cream)}
+    .btn-primary:hover{background:var(--forest-shadow)}
+    .btn-success{background:#dcfce7;color:#166534}
+    .btn-secondary{background:var(--keylime);color:var(--forest)}
+    .manage-table th{background:var(--forest);color:var(--cream)}
+    .manage-table td{border-color:var(--mist)}
+    .manage-table tr:hover td{background:var(--keylime)}
+    .form-input,.form-select{border:1px solid #111827;border-radius:6px;background:var(--cream)}
+    .manage-private-section{background:#fafafa;border:1px solid var(--mist)}
+    .manage-private-title{color:var(--forest)}
+    .manage-private-note{color:#5e7162}
+    .allergen-toggle{border:1px solid var(--mist);border-radius:8px}
+    .allergen-toggle.on{border-color:var(--forest);background:var(--forest);color:var(--cream)}
+    .lock-overlay{background:rgba(15,47,16,.82)}
+    .lock-title{color:var(--forest)}
+    .lock-input{border:1px solid #111827;border-radius:6px}
+    .lock-input:focus{border-color:var(--blue)}
+    @media(max-width:760px){
+      .app{padding:0 12px 56px}
+      .header{padding:20px 0 16px;margin:0 0 12px;border-radius:0}
+      .header h1{font-size:23px;line-height:1.35}
+      .tab-bar{display:grid;grid-template-columns:repeat(3,1fr);position:sticky;top:0;z-index:20;background:rgba(255,255,255,.96);padding:8px 0;backdrop-filter:blur(12px)}
+      .tab-btn{padding:9px 7px;font-size:12px}
+      .search-row{grid-template-columns:1fr 1fr;padding:10px;position:sticky;top:57px;z-index:15}
+      .search-input{grid-column:1/-1}
+      .sort-btn{padding:8px 10px;font-size:11px}
+      .allergen-filters{padding:12px}
+      .product-grid{grid-template-columns:1fr;gap:10px}
+      .product-card{padding:16px;display:block}
+      .product-name{font-size:16px}
+      .store-dot-row{margin-top:10px}
+      .modal-overlay{padding:8px;align-items:flex-end}
+      .modal{width:100%;max-width:none;max-height:88vh;border-radius:16px 16px 8px 8px;padding:22px 18px}
+      .modal-title{font-size:21px}
+      .allergen-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+      .stats-row{grid-template-columns:repeat(2,minmax(0,1fr))}
+      .stats-allergen-row{grid-template-columns:70px minmax(0,1fr) 76px;gap:8px;font-size:12px}
+      .store-add-row{grid-template-columns:1fr 44px}
+      .store-add-row .btn{grid-column:1/-1}
+    }
   </style>
 </head>
 <body>
@@ -253,6 +393,61 @@ const CAT_COLORS = {
 };
 const DEFAULT_PW = "hare";
 const PW_DOC = "__config__";
+function StatsView({
+  products,
+  allergenCounts,
+  hideZeroAllergen,
+  onToggleHideZero
+}) {
+  const categoryStats = CATEGORIES.filter(c => c !== "전체").map(category => ({
+    category,
+    count: products.filter(product => product["카테고리"] === category).length
+  }));
+  const allergenStats = [...ALLERGENS]
+    .sort((a, b) => allergenCounts[b] - allergenCounts[a])
+    .filter(allergen => !hideZeroAllergen || allergenCounts[allergen] > 0);
+  return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    className: "stats-row"
+  }, categoryStats.map(item => /*#__PURE__*/React.createElement("div", {
+    key: item.category,
+    className: "stat-card",
+    style: {
+      "--category-color": CAT_COLORS[item.category] || "#d4d4d4"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "stat-num"
+  }, item.count), /*#__PURE__*/React.createElement("div", {
+    className: "stat-label"
+  }, item.category || "미분류")))), /*#__PURE__*/React.createElement("section", {
+    className: "manage-section stats-panel"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "manage-title"
+  }, "알레르기별 포함 제품 수"), /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    className: "allergen-zero-toggle",
+    onClick: onToggleHideZero
+  }, /*#__PURE__*/React.createElement("span", {
+    className: `toggle-switch ${hideZeroAllergen ? "on" : ""}`
+  }), /*#__PURE__*/React.createElement("span", null, "0건 알레르기 항목 숨기기"), /*#__PURE__*/React.createElement("span", {
+    className: "stats-zero-count"
+  }, "(", ALLERGENS.filter(a => allergenCounts[a] === 0).length, "개 항목)")), /*#__PURE__*/React.createElement("div", {
+    className: "stats-allergen-list"
+  }, allergenStats.map(allergen => {
+    const count = allergenCounts[allergen];
+    const pct = products.length ? Math.round(count / products.length * 100) : 0;
+    return /*#__PURE__*/React.createElement("div", {
+      key: allergen,
+      className: "stats-allergen-row"
+    }, /*#__PURE__*/React.createElement("strong", null, allergen), /*#__PURE__*/React.createElement("div", {
+      className: "stats-bar",
+      "aria-label": `${allergen} ${pct}%`
+    }, /*#__PURE__*/React.createElement("i", {
+      style: {
+        width: `${pct}%`
+      }
+    })), /*#__PURE__*/React.createElement("span", null, count, "종 · ", pct, "%"));
+  }))));
+}
 const INITIAL_DATA = [{
   "제품이름": "48시간호밀빵",
   "카테고리": "식빵/발효빵/식사빵",
@@ -5104,12 +5299,30 @@ const INITIAL_DATA = [{
   "한천": "No",
   "아몬드": "No"
 }];
+const DEFAULT_STORE_OPTIONS = [
+  { _id: "default-dunsan", name: "둔산", color: "#0f3e17" },
+  { _id: "default-galleria", name: "갤러리아", color: "#5f8768" },
+  { _id: "default-doan", name: "도안", color: "#7aa8a4" },
+  { _id: "default-konyang", name: "건양대", color: "#6d8194" },
+  { _id: "default-yuseong", name: "유성", color: "#9aaa67" }
+];
+const storeFallbackColor = name => DEFAULT_STORE_OPTIONS.find(store => store.name === name)?.color || "#8ca58f";
+const displayStoreName = name => {
+  const value = String(name || "").trim();
+  if (!value) return "";
+  if (value === "건양대") return "건양대병원점";
+  return value.endsWith("점") ? value : value + "점";
+};
 function App() {
   const [products, setProducts] = useState([]);
+  const [stores, setStores] = useState(DEFAULT_STORE_OPTIONS);
   const [loaded, setLoaded] = useState(false);
   const [tab, setTab] = useState("view");
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("전체");
+  const [storeFilter, setStoreFilter] = useState("전체");
+  const [newStoreName, setNewStoreName] = useState("");
+  const [newStoreColor, setNewStoreColor] = useState("#5f8768");
   const [filterAllergens, setFilterAllergens] = useState([]);
   const [filterMode, setFilterMode] = useState("contains"); // "contains" | "excludes"
   const [selectedProduct, setSelectedProduct] = useState(null);
@@ -5164,7 +5377,25 @@ function App() {
       console.error(err);
       setLoaded(true); if(window.__hideSplash){window.__hideSplash();window.__hideSplash=null;}
     });
-    return () => ref.off("value", handler);
+    const storesRef = db.ref("stores");
+    const storesHandler = snap => {
+      const value = snap.val();
+      if (!value) {
+        setStores(DEFAULT_STORE_OPTIONS);
+        return;
+      }
+      const list = Object.values(value).filter(Boolean).map((store, index) => ({
+        ...store,
+        _id: store._id || "store-" + index,
+        color: store.color || storeFallbackColor(store.name)
+      })).sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), "ko"));
+      setStores(list.length ? list : DEFAULT_STORE_OPTIONS);
+    };
+    storesRef.on("value", storesHandler);
+    return () => {
+      ref.off("value", handler);
+      storesRef.off("value", storesHandler);
+    };
   }, []);
   const getOriginText = (origin, index) => {
     const item = Array.isArray(origin) ? origin[index] : null;
@@ -5192,6 +5423,14 @@ function App() {
     await db.ref("products/" + id).remove();
   };
   const getProductAllergens = p => ALLERGENS.filter(a => p[a] === "Yes");
+  const getProductStoreNames = p => Array.isArray(p["판매점포"]) && p["판매점포"].length
+    ? p["판매점포"]
+    : stores.map(store => store.name);
+  const getStoreMeta = name => stores.find(store => store.name === name) || {
+    _id: name,
+    name,
+    color: storeFallbackColor(name)
+  };
   const sortedProducts = useMemo(() => {
     if (sortOrder === "none") return [...products];
     return [...products].sort((a, b) => {
@@ -5209,8 +5448,16 @@ function App() {
   }, [products, manageShowHidden, manageSortOrder]);
   const filteredProducts = useMemo(() => sortedProducts.filter(p => {
     if (p._hidden) return false; // 숨김 품목 제외
-    if (!p["제품이름"].includes(search)) return false;
+    const storeNames = getProductStoreNames(p);
+    const query = search.trim().toLowerCase();
+    const searchable = [
+      p["제품이름"],
+      p["카테고리"],
+      ...storeNames.map(displayStoreName)
+    ].filter(Boolean).join(" ").toLowerCase();
+    if (query && !searchable.includes(query)) return false;
     if (category !== "전체" && p["카테고리"] !== category) return false;
+    if (storeFilter !== "전체" && !storeNames.includes(storeFilter)) return false;
     if (filterAllergens.length > 0) {
       if (filterMode === "contains") {
         if (!filterAllergens.every(a => p[a] === "Yes")) return false;
@@ -5219,7 +5466,7 @@ function App() {
       }
     }
     return true;
-  }), [sortedProducts, search, category, filterAllergens, filterMode]);
+  }), [sortedProducts, search, category, storeFilter, stores, filterAllergens, filterMode]);
   const allergenCounts = useMemo(() => {
     const c = {};
     ALLERGENS.forEach(a => {
@@ -5232,6 +5479,7 @@ function App() {
       "제품이름": "",
       "카테고리": "일반빵",
       "판매금액": 0,
+      "판매점포": [],
       "원산지": [
         { rank: 1, text: "" },
         { rank: 2, text: "" },
@@ -5271,6 +5519,44 @@ function App() {
     if (!window.confirm("삭제하시겠습니까?")) return;
     await delProd(id);
   };
+
+  const addStore = async () => {
+    const name = newStoreName.trim().replace(/점$/, "");
+    if (!name) return;
+    if (stores.some(store => store.name === name)) {
+      alert("이미 등록된 점포입니다.");
+      return;
+    }
+    const ref = db.ref("stores").push();
+    await ref.set({ _id: ref.key, name, color: newStoreColor });
+    setNewStoreName("");
+  };
+  const renameStore = async store => {
+    const entered = window.prompt("점포 이름을 입력하세요.", displayStoreName(store.name));
+    if (!entered) return;
+    const name = entered.trim().replace(/점$/, "").replace("건양대병원", "건양대");
+    if (!name || name === store.name) return;
+    if (stores.some(item => item._id !== store._id && item.name === name)) {
+      alert("이미 등록된 점포입니다.");
+      return;
+    }
+    await db.ref("stores/" + store._id + "/name").set(name);
+  };
+  const removeStore = async store => {
+    if (!window.confirm(displayStoreName(store.name) + "을 삭제하시겠습니까?")) return;
+    await db.ref("stores/" + store._id).remove();
+    if (storeFilter === store.name) setStoreFilter("전체");
+  };
+  const setStoreColor = (store, color) => db.ref("stores/" + store._id + "/color").set(color);
+  const toggleFormStore = name => setFormData(current => {
+    const selected = Array.isArray(current["판매점포"]) ? current["판매점포"] : [];
+    return {
+      ...current,
+      "판매점포": selected.includes(name)
+        ? selected.filter(item => item !== name)
+        : [...selected, name]
+    };
+  });
 
   // 품목 숨김/보임 토글
   const toggleHidden = async p => {
@@ -5521,11 +5807,16 @@ function App() {
   }, isManageLocked ? "🔒" : "🔓", " \uAD00\uB9AC"), /*#__PURE__*/React.createElement("button", {
     className: `tab-btn ${tab === "stats" ? "active" : ""}`,
     onClick: () => setTab("stats")
-  }, "\uD83D\uDCCA \uD1B5\uACC4")), tab === "view" && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+  }, "\uD83D\uDCCA \uD1B5\uACC4")), tab === "stats" && /*#__PURE__*/React.createElement(StatsView, {
+    products: products,
+    allergenCounts: allergenCounts,
+    hideZeroAllergen: hideZeroAllergen,
+    onToggleHideZero: () => setHideZeroAllergen(value => !value)
+  }), tab === "view" && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     className: "search-row"
   }, /*#__PURE__*/React.createElement("input", {
     className: "search-input",
-    placeholder: "\uD83D\uDD0D \uC81C\uD488\uBA85 \uAC80\uC0C9...",
+    placeholder: "\uD83D\uDD0D \uC81C\uD488\uBA85\u00B7\uCE74\uD14C\uACE0\uB9AC\u00B7\uC810\uD3EC \uAC80\uC0C9...",
     value: search,
     onChange: e => setSearch(e.target.value)
   }), /*#__PURE__*/React.createElement("select", {
@@ -5534,7 +5825,17 @@ function App() {
     onChange: e => setCategory(e.target.value)
   }, CATEGORIES.map(c => /*#__PURE__*/React.createElement("option", {
     key: c
-  }, c))), /*#__PURE__*/React.createElement("button", {
+  }, c))), /*#__PURE__*/React.createElement("select", {
+    className: "store-select",
+    value: storeFilter,
+    onChange: e => setStoreFilter(e.target.value),
+    "aria-label": "\uC810\uD3EC\uBCC4 \uD544\uD130"
+  }, /*#__PURE__*/React.createElement("option", {
+    value: "\uC804\uCCB4"
+  }, "\uC804\uCCB4 \uC810\uD3EC"), stores.map(store => /*#__PURE__*/React.createElement("option", {
+    key: store._id,
+    value: store.name
+  }, displayStoreName(store.name)))), /*#__PURE__*/React.createElement("button", {
     className: `sort-btn ${sortOrder === "asc" ? "active" : ""}`,
     onClick: () => setSortOrder(sortOrder === "asc" ? "none" : "asc")
   }, "\uAC00\uB098\uB2E4 \u2191"), /*#__PURE__*/React.createElement("button", {
@@ -5590,8 +5891,8 @@ function App() {
     }, p["제품이름"]), /*#__PURE__*/React.createElement("span", {
       className: "cat-badge",
       style: {
-        background: cc + "33",
-        color: "#555",
+        background: cc + "22",
+        color: "#404040",
         border: `1px solid ${cc}55`
       }
     }, p["카테고리"] || "미분류")), /*#__PURE__*/React.createElement("div", {
@@ -5601,7 +5902,22 @@ function App() {
     }, "\uC54C\uB808\uB974\uAE30 \uC5C6\uC74C") : allergens.map(a => /*#__PURE__*/React.createElement("span", {
       key: a,
       className: `allergen-tag ${filterAllergens.includes(a) ? "danger" : ""}`
-    }, a)))), /*#__PURE__*/React.createElement("span", {
+    }, a))), /*#__PURE__*/React.createElement("div", {
+      className: "store-dot-row",
+      "aria-label": "\uD310\uB9E4 \uC810\uD3EC"
+    }, getProductStoreNames(p).map(name => {
+      const store = getStoreMeta(name);
+      return /*#__PURE__*/React.createElement("span", {
+        key: name,
+        className: "store-dot-item",
+        title: displayStoreName(name)
+      }, /*#__PURE__*/React.createElement("i", {
+        className: "store-dot",
+        style: {
+          "--store-color": store.color
+        }
+      }), displayStoreName(name));
+    }))), /*#__PURE__*/React.createElement("span", {
       className: "card-arrow"
     }, "\u203A"));
   }))), tab === "manage" && !isManageLocked && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
@@ -5632,6 +5948,55 @@ function App() {
     },
     onClick: lockManage
   }, "\uC7A0\uAE08")), /*#__PURE__*/React.createElement("div", {
+    className: "manage-section"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "manage-title"
+  }, "\uC810\uD3EC\uBCC4 \uC0C9\uC0C1 \uAD00\uB9AC"), /*#__PURE__*/React.createElement("p", {
+    style: {
+      fontSize: 12,
+      color: "#667368",
+      marginBottom: 12
+    }
+  }, "\uC870\uD68C \uD654\uBA74\uC758 \uC810\uD3EC \uD45C\uC2DC\uC640 \uAC80\uC0C9 \uD544\uD130\uC5D0 \uB3D9\uC2DC \uBC18\uC601\uB429\uB2C8\uB2E4."), /*#__PURE__*/React.createElement("div", {
+    className: "store-add-row"
+  }, /*#__PURE__*/React.createElement("input", {
+    className: "form-input",
+    value: newStoreName,
+    onChange: e => setNewStoreName(e.target.value),
+    onKeyDown: e => e.key === "Enter" && addStore(),
+    placeholder: "\uCD94\uAC00\uD560 \uC810\uD3EC\uBA85"
+  }), /*#__PURE__*/React.createElement("input", {
+    className: "store-color-input",
+    type: "color",
+    value: newStoreColor,
+    onChange: e => setNewStoreColor(e.target.value),
+    title: "\uC810\uD3EC \uC0C9\uC0C1"
+  }), /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-primary",
+    onClick: addStore
+  }, "\uC810\uD3EC \uCD94\uAC00")), /*#__PURE__*/React.createElement("div", {
+    className: "store-manage-grid"
+  }, stores.map(store => /*#__PURE__*/React.createElement("div", {
+    className: "store-manage-card",
+    key: store._id
+  }, /*#__PURE__*/React.createElement("i", {
+    className: "store-dot",
+    style: {
+      "--store-color": store.color
+    }
+  }), /*#__PURE__*/React.createElement("strong", null, displayStoreName(store.name)), /*#__PURE__*/React.createElement("input", {
+    className: "store-color-input",
+    type: "color",
+    value: store.color,
+    onChange: e => setStoreColor(store, e.target.value),
+    title: displayStoreName(store.name) + " \uC0C9\uC0C1"
+  }), /*#__PURE__*/React.createElement("button", {
+    className: "btn-sm btn-sm-edit",
+    onClick: () => renameStore(store)
+  }, "\uC218\uC815"), /*#__PURE__*/React.createElement("button", {
+    className: "btn-sm btn-sm-del",
+    onClick: () => removeStore(store)
+  }, "\uC0AD\uC81C")))), /*#__PURE__*/React.createElement("div", {
     className: "manage-section"
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -5730,9 +6095,10 @@ function App() {
     }, "\uC228\uAE40")), /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement("span", {
       style: {
         background: (CAT_COLORS[p["카테고리"]] || "#ddd") + "22",
-        color: "#555",
-        padding: "2px 10px",
-        borderRadius: 50,
+        color: "#404040",
+        padding: "4px 8px",
+        border: `1px solid ${(CAT_COLORS[p["카테고리"]] || "#ddd")}55`,
+        borderRadius: 6,
         fontSize: 11,
         fontWeight: 600
       }
@@ -5757,13 +6123,13 @@ function App() {
       style: {
         display: "inline-block",
         margin: "1px 2px",
-        background: "#fff3cd",
-        color: "#856404",
-        padding: "1px 7px",
+        background: "#eff6ff",
+        color: "#1e40af",
+        padding: "3px 8px",
         borderRadius: 50,
         fontSize: 11,
         fontWeight: 600,
-        border: "1px solid #ffc107"
+        border: "none"
       }
     }, a)), al.length > 5 && /*#__PURE__*/React.createElement("span", {
       style: {
@@ -5878,11 +6244,27 @@ function App() {
   }, "\xD7")), /*#__PURE__*/React.createElement("span", {
     className: "detail-cat",
     style: {
-      background: (CAT_COLORS[selectedProduct["카테고리"]] || "#ddd") + "33",
-      color: "#555",
+      background: (CAT_COLORS[selectedProduct["카테고리"]] || "#ddd") + "22",
+      color: "#404040",
       border: `1px solid ${CAT_COLORS[selectedProduct["카테고리"]] || "#ddd"}55`
     }
   }, selectedProduct["카테고리"] || "미분류"), /*#__PURE__*/React.createElement("div", {
+    className: "store-dot-row",
+    style: {
+      marginBottom: 16
+    }
+  }, getProductStoreNames(selectedProduct).map(name => {
+    const store = getStoreMeta(name);
+    return /*#__PURE__*/React.createElement("span", {
+      className: "store-dot-item",
+      key: name
+    }, /*#__PURE__*/React.createElement("i", {
+      className: "store-dot",
+      style: {
+        "--store-color": store.color
+      }
+    }), displayStoreName(name));
+  })), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 13,
       color: "#888",
@@ -5916,7 +6298,7 @@ function App() {
       setTab("manage");
       openEdit(selectedProduct);
     }
-  }, "\uC218\uC815\uD558\uAE30")))), showForm && formData && /*#__PURE__*/React.createElement("div", {
+  }, "\uC218\uC815\uD558\uAE30"))))), showForm && formData && /*#__PURE__*/React.createElement("div", {
     className: "modal-overlay",
     onClick: () => setShowForm(false)
   }, /*#__PURE__*/React.createElement("div", {
@@ -5982,6 +6364,28 @@ function App() {
       "\uD310\uB9E4\uAE08\uC561": Number(e.target.value) || 0
     })),
     placeholder: "\uC608) 3800"
+  }))), /*#__PURE__*/React.createElement("div", {
+    className: "form-group",
+    style: {
+      marginBottom: 14
+    }
+  }, /*#__PURE__*/React.createElement("label", {
+    className: "form-label"
+  }, "\uD310\uB9E4 \uC810\uD3EC \u00B7 \uC120\uD0DD \uC5C6\uC74C\uC740 \uC804 \uC810\uD3EC"), /*#__PURE__*/React.createElement("div", {
+    className: "store-picker"
+  }, stores.map(store => {
+    const selected = Array.isArray(formData["\uD310\uB9E4\uC810\uD3EC"]) && formData["\uD310\uB9E4\uC810\uD3EC"].includes(store.name);
+    return /*#__PURE__*/React.createElement("button", {
+      type: "button",
+      key: store._id,
+      className: `store-choice ${selected ? "on" : ""}`,
+      onClick: () => toggleFormStore(store.name)
+    }, /*#__PURE__*/React.createElement("i", {
+      className: "store-dot",
+      style: {
+        "--store-color": store.color
+      }
+    }), displayStoreName(store.name));
   }))), /*#__PURE__*/React.createElement("div", {
     className: "origin-form-grid"
   }, [0, 1, 2].map(index => /*#__PURE__*/React.createElement("div", {
