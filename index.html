@@ -247,6 +247,7 @@
     .allergen-tag{background:var(--blue-wash);border:0;color:var(--blue-dark);font-size:12px;line-height:1.4;padding:4px 9px}
     .allergen-tag.danger{background:var(--forest);border-color:var(--forest);color:var(--cream)}
     .store-dot-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:14px}
+    .store-dot-row:empty{display:none}
     .store-dot-item{display:inline-flex;align-items:center;gap:6px;color:#404040;font-size:12px;font-weight:500;line-height:1.4}
     .store-dot{width:10px;height:10px;border-radius:50%;background:var(--store-color,var(--sage));flex:0 0 auto}
     .product-card .store-dot-row{gap:9px;margin-top:13px}
@@ -5338,9 +5339,13 @@ const DEFAULT_STORE_OPTIONS = [
   { _id: "default-konyang", name: "건양대", color: "#6d8194" },
   { _id: "default-yuseong", name: "유성", color: "#9aaa67" }
 ];
-const storeFallbackColor = name => DEFAULT_STORE_OPTIONS.find(store => store.name === name)?.color || "#8ca58f";
+const normalizeStoreName = name => {
+  const value = String(name || "").trim().replace(/점$/, "");
+  return value === "건양대병원" ? "건양대" : value;
+};
+const storeFallbackColor = name => DEFAULT_STORE_OPTIONS.find(store => store.name === normalizeStoreName(name))?.color || "#8ca58f";
 const displayStoreName = name => {
-  const value = String(name || "").trim();
+  const value = normalizeStoreName(name);
   if (!value) return "";
   if (value === "건양대") return "건양대병원점";
   return value.endsWith("점") ? value : value + "점";
@@ -5419,6 +5424,7 @@ function App() {
       const list = Object.values(value).filter(Boolean).map((store, index) => ({
         ...store,
         _id: store._id || "store-" + index,
+        name: normalizeStoreName(store.name),
         color: store.color || storeFallbackColor(store.name)
       })).sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), "ko"));
       setStores(list.length ? list : DEFAULT_STORE_OPTIONS);
@@ -5455,12 +5461,16 @@ function App() {
     await db.ref("products/" + id).remove();
   };
   const getProductAllergens = p => ALLERGENS.filter(a => p[a] === "Yes");
-  const getProductStoreNames = p => Array.isArray(p["판매점포"]) && p["판매점포"].length
-    ? p["판매점포"]
-    : stores.map(store => store.name);
-  const getStoreMeta = name => stores.find(store => store.name === name) || {
-    _id: name,
-    name,
+  const getProductStoreNames = p => {
+    const savedNames = Array.isArray(p["판매점포"])
+      ? p["판매점포"].map(normalizeStoreName).filter(Boolean)
+      : [];
+    if (!savedNames.length) return [];
+    return stores.map(store => store.name).filter(name => savedNames.includes(name));
+  };
+  const getStoreMeta = name => stores.find(store => store.name === normalizeStoreName(name)) || {
+    _id: normalizeStoreName(name),
+    name: normalizeStoreName(name),
     color: storeFallbackColor(name)
   };
   const sortedProducts = useMemo(() => {
@@ -5511,7 +5521,7 @@ function App() {
       "제품이름": "",
       "카테고리": "일반빵",
       "판매금액": 0,
-      "판매점포": [],
+      "판매점포": stores.map(store => store.name),
       "원산지": [
         { rank: 1, text: "" },
         { rank: 2, text: "" },
@@ -5525,7 +5535,8 @@ function App() {
   };
   const openEdit = p => {
     setFormData({
-      ...p
+      ...p,
+      "판매점포": getProductStoreNames(p)
     });
     setEditProduct(p._id);
     setShowForm(true);
@@ -6406,7 +6417,7 @@ function App() {
     }
   }, /*#__PURE__*/React.createElement("label", {
     className: "form-label"
-  }, "\uD310\uB9E4 \uC810\uD3EC \u00B7 \uC120\uD0DD \uC5C6\uC74C\uC740 \uC804 \uC810\uD3EC"), /*#__PURE__*/React.createElement("div", {
+  }, "\uD310\uB9E4 \uC810\uD3EC \u00B7 \uBCF5\uC218 \uC120\uD0DD \uAC00\uB2A5"), /*#__PURE__*/React.createElement("div", {
     className: "store-picker"
   }, stores.map(store => {
     const selected = Array.isArray(formData["\uD310\uB9E4\uC810\uD3EC"]) && formData["\uD310\uB9E4\uC810\uD3EC"].includes(store.name);
