@@ -5355,6 +5355,8 @@ const displayStoreName = name => {
 function App() {
   const [products, setProducts] = useState([]);
   const [stores, setStores] = useState(DEFAULT_STORE_OPTIONS);
+  const [exportStore, setExportStore] = useState("전체");
+  const [exporting, setExporting] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [tab, setTab] = useState("view");
   const [search, setSearch] = useState("");
@@ -5611,6 +5613,10 @@ function App() {
 
   // ── 엑셀 다운로드 ──
   const exportExcel = async () => {
+    const exportProducts = products.filter(p => exportStore === "전체" || getProductStoreNames(p).includes(exportStore));
+    if (!exportProducts.length) { alert("선택한 점포에 등록된 제품이 없습니다."); return; }
+    setExporting(true);
+    try {
       if (!window.XLSX) {
         await new Promise((resolve, reject) => {
           const s = document.createElement('script');
@@ -5621,7 +5627,7 @@ function App() {
       }
     const cols = ["제품이름", "카테고리", "판매금액", "원산지 1순위", "원산지 2순위", "원산지 3순위", ...ALLERGENS];
     const header = cols;
-    const rows = products.map(p => [
+    const rows = exportProducts.map(p => [
       p["제품이름"] || "",
       p["카테고리"] || "",
       p["판매금액"] ?? "",
@@ -5665,7 +5671,12 @@ function App() {
     }
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "알레르기 목록");
-    XLSX.writeFile(wb, "알레르기_유발물질_목록.xlsx");
+    const suffix = exportStore === "전체" ? "전체" : displayStoreName(exportStore);
+    XLSX.writeFile(wb, ("알레르기_유발물질_" + suffix).replace(/[\\/:*?"<>|]/g, "_") + ".xlsx");
+    } catch (error) {
+      console.error(error);
+      alert("엑셀 다운로드에 실패했습니다. 인터넷 연결을 확인하고 다시 시도해주세요.");
+    } finally { setExporting(false); }
   };
   const handleManageTabClick = () => {
     if (isManageLocked) {
@@ -6063,10 +6074,15 @@ function App() {
       display: "flex",
       gap: 8
     }
-  }, /*#__PURE__*/React.createElement("button", {
+  }, /*#__PURE__*/React.createElement("select", {
+    className: "store-select", value: exportStore, "aria-label": "엑셀 다운로드 점포",
+    style: { width: "auto" }, onChange: e => setExportStore(e.target.value)
+  }, React.createElement("option", { value: "전체" }, "전체 점포"), stores.map(store => React.createElement("option", {
+    key: store._id, value: store.name
+  }, displayStoreName(store.name)))), /*#__PURE__*/React.createElement("button", {
     className: "btn btn-success",
-    onClick: exportExcel
-  }, "\u2B07 \uC5D1\uC140 \uB2E4\uC6B4\uB85C\uB4DC"), /*#__PURE__*/React.createElement("button", {
+    onClick: exportExcel, disabled: exporting || !loaded
+  }, exporting ? "다운로드 준비 중…" : "⬇ " + (exportStore === "전체" ? "전체" : displayStoreName(exportStore)) + " 엑셀 다운로드"), /*#__PURE__*/React.createElement("button", {
     className: "btn btn-primary",
     onClick: openNew
   }, "+ \uC0C8 \uC81C\uD488 \uCD94\uAC00"))), /*#__PURE__*/React.createElement("div", {
