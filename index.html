@@ -5525,7 +5525,7 @@ function App() {
       "제품이름": "",
       "카테고리": "일반빵",
       "판매금액": 0,
-      "판매점포": stores.map(store => store.name),
+      "판매점포": [],
       "원산지": [
         { rank: 1, text: "" },
         { rank: 2, text: "" },
@@ -5550,12 +5550,22 @@ function App() {
       alert("제품이름을 입력하세요.");
       return;
     }
+    const validStoreNames = new Set(stores.map(store => store.name));
+    const selectedStoreNames = [...new Set(
+      (Array.isArray(formData["판매점포"]) ? formData["판매점포"] : [])
+        .map(normalizeStoreName)
+        .filter(name => validStoreNames.has(name))
+    )];
+    const normalizedFormData = {
+      ...formData,
+      "판매점포": selectedStoreNames
+    };
     setSaving(true);
     try {
       await saveProd(editProduct ? {
-        ...formData,
+        ...normalizedFormData,
         _id: editProduct
-      } : formData);
+      } : normalizedFormData);
       setShowForm(false);
     } catch (e) {
       alert("저장 실패: " + e.message);
@@ -6454,7 +6464,14 @@ function App() {
         "--store-color": store.color
       }
     }), displayStoreName(store.name));
-  }))), /*#__PURE__*/React.createElement("div", {
+  })), /*#__PURE__*/React.createElement("p", {
+    style: {
+      margin: "8px 0 0",
+      color: "var(--text3)",
+      fontSize: 12,
+      lineHeight: 1.5
+    }
+  }, "\uCCB4\uD06C\uD55C \uC810\uD3EC\uC5D0\uC11C\uB9CC \uD310\uB9E4\uD558\uB294 \uD488\uBAA9\uC73C\uB85C \uC800\uC7A5\uB429\uB2C8\uB2E4. \uBBF8\uCCB4\uD06C \uC810\uD3EC\uB294 \uBBF8\uD310\uB9E4\uB85C \uCC98\uB9AC\uB429\uB2C8\uB2E4.")), /*#__PURE__*/React.createElement("div", {
     className: "origin-form-grid"
   }, [0, 1, 2].map(index => /*#__PURE__*/React.createElement("div", {
     className: "form-group",
