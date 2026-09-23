@@ -15,7 +15,8 @@
     .s-fill{height:100%;background:#2563eb;border-radius:4px;animation:sslide 1.3s ease-in-out infinite}
     @keyframes sbounce{from{transform:translateY(0)}to{transform:translateY(-8px)}}
     @keyframes sslide{0%{transform:translateX(-100%)}100%{transform:translateX(260%)}}
-  </style>
+  
+</style>
 
   <!-- Google Fonts: display=swap → 폰트 로딩 전 시스템 폰트 먼저 표시 -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -370,7 +371,173 @@
       .store-add-row{grid-template-columns:1fr 44px}
       .store-add-row .btn{grid-column:1/-1}
     }
-  </style>
+      /* Hallmark · redesign: dashboard workspace · warm Harehare brown */
+    :root{
+      --forest:#4b3529;
+      --forest-shadow:#34241c;
+      --sage:#b99b87;
+      --keylime:#f5f1ed;
+      --mint:#eee7e0;
+      --slate:#f2ece6;
+      --cream:#fffefd;
+      --charcoal:#302923;
+      --mist:#e7ddd4;
+      --blue:#76533e;
+      --blue-dark:#604331;
+      --blue-wash:#f3ece6;
+      --muted:#81756c;
+      --color-brown:#604331;
+      --color-brown-soft:#a78670;
+      --color-paper:#f5f1ed;
+      --color-line:#e7ddd4;
+      --ease-out:cubic-bezier(.16,1,.3,1);
+      --duration-short:180ms;
+    }
+    html,body{overflow-x:clip}
+    body{background:#f5f1ed;color:#302923}
+    .app{max-width:1440px;padding:0 32px 72px}
+    .header{
+      background:transparent;color:var(--forest);padding:30px 0 22px;margin:0 0 20px;
+      border-radius:0;border-bottom:1px solid var(--mist)
+    }
+    .header h1{font-size:25px;font-weight:700;letter-spacing:-.04em;color:var(--forest)}
+    .header>p:first-of-type{margin-top:7px;color:var(--muted);font-size:13px}
+    .header .production-notice{
+      display:inline-block;margin-top:13px;padding:9px 12px;border-left:3px solid var(--color-brown-soft);
+      border-radius:0 7px 7px 0;background:#eee7e0;color:#5d5148;font-size:12px
+    }
+    .header .customer-notice{margin-top:7px;color:var(--color-brown);font-size:12px}
+    .tab-bar{
+      display:flex;gap:5px;width:max-content;max-width:100%;margin:0 0 22px;padding:5px;
+      border:1px solid var(--mist);border-radius:12px;background:#fffefd
+    }
+    .tab-btn{
+      min-height:40px;padding:8px 16px;border:1px solid transparent;border-radius:8px;
+      background:transparent;color:#6c5c50;font-size:13px;font-weight:600
+    }
+    .tab-btn.active{background:var(--forest);border-color:var(--forest);color:#fffefd}
+    .tab-btn:hover:not(.active){background:var(--keylime);color:var(--forest)}
+    .search-row{
+      grid-template-columns:minmax(220px,1fr) minmax(150px,200px) minmax(150px,190px) auto auto;
+      gap:9px;margin-bottom:13px;padding:13px;border:1px solid var(--mist);
+      border-radius:13px;background:#fffefd;box-shadow:0 3px 12px rgba(69,47,34,.035)
+    }
+    .search-input,.cat-select,.store-select,.form-input,.form-select{
+      border-color:#ded4cb;border-radius:8px;background:#fffefd;color:var(--charcoal)
+    }
+    .search-input{border-color:#ded4cb}
+    .search-input:focus,.cat-select:focus,.store-select:focus,.form-input:focus,.form-select:focus{
+      border-color:var(--color-brown-soft);box-shadow:0 0 0 3px rgba(96,67,49,.12)
+    }
+    .sort-btn,.manage-filter-btn{
+      border-color:#ded4cb;border-radius:8px;background:#fffefd;color:#6c5c50
+    }
+    .sort-btn.active,.manage-filter-btn.active{background:var(--forest);border-color:var(--forest);color:#fffefd}
+    .allergen-filters,.manage-section,.stats-panel{
+      border:1px solid var(--mist);border-radius:14px;background:#fffefd;
+      box-shadow:0 4px 16px rgba(69,47,34,.035)
+    }
+    .allergen-filters{padding:16px}
+    .filter-label,.manage-title{color:var(--forest)}
+    .filter-label::before{background:var(--color-brown-soft)}
+    .filter-mode-toggle{border-color:#cbbbaf}
+    .filter-mode-btn{color:var(--forest)}
+    .filter-mode-btn.active-contains,.filter-mode-btn.active-excludes{background:var(--forest);color:#fffefd}
+    .allergen-chip{border-color:#ddd2c8;background:#fffefd;color:#69594d}
+    .allergen-chip.selected,.allergen-chip.selected-exclude{background:var(--forest);border-color:var(--forest);color:#fffefd}
+    .results-info{color:var(--muted)}
+    .product-grid{grid-template-columns:repeat(auto-fill,minmax(min(100%,290px),1fr));gap:14px}
+    .product-card{
+      border-color:var(--mist);border-radius:13px;background:#fffefd;padding:19px;
+      box-shadow:0 3px 12px rgba(69,47,34,.035);transition:transform var(--duration-short) var(--ease-out),border-color var(--duration-short)
+    }
+    .product-card:hover{transform:translateY(-2px);border-color:#c9b6a7;background:#fffefd;box-shadow:0 8px 22px rgba(69,47,34,.08)}
+    .product-card.selected{border-color:var(--color-brown-soft);box-shadow:0 0 0 3px rgba(96,67,49,.1)}
+    .product-name{color:var(--forest);font-weight:650}
+    .cat-badge{border-radius:6px!important}
+    .allergen-tags{border-color:#eee8e2}
+    .allergen-tag{background:#f1eae4;color:#634632}
+    .allergen-tag.danger{background:var(--forest);color:#fffefd}
+    .store-dot{box-shadow:0 0 0 2px #fffefd,0 0 0 3px var(--mist)}
+    .stat-card,.modal,.lock-box{border-color:var(--mist);border-radius:13px;background:#fffefd;box-shadow:0 4px 16px rgba(69,47,34,.035)}
+    .stat-card::before{background:var(--category-color,#c5b4a7)}
+    .stat-num{color:var(--forest)}
+    .stats-bar{background:#eee8e2}
+    .stats-bar i{background:var(--color-brown-soft)}
+    .manage-section{padding:22px}
+    .manage-title{font-size:17px;letter-spacing:-.02em}
+    .manage-table{border-collapse:separate;border-spacing:0;font-size:13px}
+    .manage-table th{background:#5a4031;color:#fffefd;border-bottom:1px solid #5a4031}
+    .manage-table td{background:#fffefd;border-color:#eee8e2;color:#3e342d}
+    .manage-table tr:hover td{background:#f8f5f2}
+    .manage-sort-header:hover{color:#ead8ca}
+    .manage-sort-arrow{border-color:rgba(255,253,249,.4)}
+    .manage-filters{gap:8px}
+    .manage-list-actions .btn{white-space:nowrap}
+    .btn-primary{background:var(--forest);color:#fffefd}
+    .btn-primary:hover{background:var(--forest-shadow)}
+    .btn-success{background:#72513d;color:#fffefd}
+    .btn-success:hover{background:#5b3f2f}
+    .btn-secondary{background:#eee7e0;color:var(--forest)}
+    .btn-secondary:hover{background:#e4d9cf}
+    .btn-danger{background:#a3473e;color:#fffefd}
+    .btn-sm-edit{background:#f1eae4;color:#624632}
+    .btn-sm-del{background:#f8ecea;color:#9b3d35}
+    .manage-private-section{background:#faf7f4;border-color:var(--mist)}
+    .manage-private-title{color:var(--forest)}
+    .manage-private-note{color:#796b60}
+    .allergen-toggle{border-color:#e1d8d0;background:#fffefd;color:#594a3f}
+    .allergen-toggle.on{border-color:var(--forest);background:var(--forest);color:#fffefd}
+    .store-manage-card{border-color:var(--mist);border-radius:10px;background:#fffefd}
+    .modal-overlay{background:rgba(46,34,27,.48)}
+    .modal{padding:26px}
+    .close-btn{background:#eee7e0;color:var(--forest)}
+    .detail-cat{border-radius:6px!important}
+    .allergen-item.yes{background:#f1eae4;color:#624632}
+    .allergen-dot.yes{background:var(--color-brown-soft)}
+    .allergen-zero-toggle{color:#58483c}
+    .toggle-switch.on{background:var(--forest)}
+    .lock-overlay{background:rgba(52,36,28,.84)}
+    button,input,select{font-family:'Inter','Noto Sans KR',sans-serif}
+    button:focus-visible,input:focus-visible,select:focus-visible{
+      outline:3px solid #a78670;outline-offset:2px
+    }
+    @media(max-width:760px){
+      .app{padding:0 14px 54px}
+      .header{padding:22px 0 17px;margin-bottom:14px}
+      .header h1{font-size:21px}
+      .header .production-notice{display:block;line-height:1.55}
+      .tab-bar{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));width:100%;gap:4px;margin-bottom:14px}
+      .tab-btn{min-width:0;padding:8px 5px;font-size:12px;white-space:nowrap}
+      .search-row{grid-template-columns:1fr 1fr;gap:7px;padding:10px}
+      .search-input{grid-column:1/-1}
+      .sort-btn{min-height:38px;padding:7px 6px;font-size:11px;white-space:nowrap}
+      .allergen-filters{padding:12px}
+      .product-grid{grid-template-columns:minmax(0,1fr);gap:9px}
+      .product-card{padding:15px}
+      .manage-section{padding:15px}
+      .manage-section:has(.manage-list-heading){margin-left:0;margin-right:0;padding:14px}
+      .manage-list-heading{grid-template-columns:minmax(0,1fr)!important}
+      .manage-list-actions{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+      .manage-list-actions .btn{padding:10px 6px;font-size:11px;white-space:nowrap}
+      .manage-filters{grid-template-columns:repeat(2,minmax(0,1fr))}
+      .manage-table-scroll{overflow:visible!important}
+      .manage-table tr{box-shadow:0 2px 8px rgba(69,47,34,.035)}
+      .stats-row{grid-template-columns:repeat(2,minmax(0,1fr))}
+      .modal{padding:22px 17px}
+    }
+    @media(max-width:360px){
+      .app{padding-right:10px;padding-left:10px}
+      .manage-list-actions{grid-template-columns:minmax(0,1fr)!important}
+      .manage-list-actions .btn{white-space:normal}
+      .manage-filters{grid-template-columns:minmax(0,1fr)}
+      .manage-filters>span:first-child,.manage-filters>span:last-child{grid-column:auto}
+    }
+    @media(prefers-reduced-motion:reduce){
+      *,*::before,*::after{scroll-behavior:auto!important;transition-duration:.01ms!important;animation-duration:.01ms!important}
+    }
+
+</style>
 </head>
 <body>
   <div id="splash">
@@ -418,13 +585,13 @@ const db = window.__db;
 const ALLERGENS = ["계란", "우유", "메밀", "땅콩", "대두", "밀", "고등어", "게", "새우", "돼지고기", "복숭아", "토마토", "아황산류", "호두", "닭고기", "쇠고기", "오징어", "조개류", "잣", "꿀", "한천", "아몬드"];
 const CATEGORIES = ["전체", "식빵/발효빵/식사빵", "일반빵", "케이크/롤/파운드", "쿠키/정과", "샌드위치/마카롱/초콜릿/잼/냉장", "시즌"];
 const CAT_COLORS = {
-  "식빵/발효빵/식사빵": "#e8a87c",
-  "일반빵": "#85c1e9",
-  "케이크/롤/파운드": "#f1948a",
-  "쿠키/정과": "#82e0aa",
-  "샌드위치/마카롱/초콜릿/잼/냉장": "#c39bd3",
-  "시즌": "#f7dc6f",
-  "": "#bdc3c7"
+  "식빵/발효빵/식사빵": "#9a715b",
+  "일반빵": "#b48b72",
+  "케이크/롤/파운드": "#805b47",
+  "쿠키/정과": "#c1a38e",
+  "샌드위치/마카롱/초콜릿/잼/냉장": "#a37b63",
+  "시즌": "#8e7b6c",
+  "": "#c9beb5"
 };
 const DEFAULT_PW = "hare";
 const PW_DOC = "__config__";
@@ -6347,7 +6514,7 @@ function App() {
       style: {
         width: `${pct}%`,
         height: "100%",
-        background: pct > 60 ? "#ff4757" : pct > 30 ? "#ffa502" : "#2ed573",
+        background: pct > 60 ? "#624334" : pct > 30 ? "#98745d" : "#c3a995",
         borderRadius: 50,
         transition: "width .5s"
       }
