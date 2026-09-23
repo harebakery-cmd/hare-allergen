@@ -630,11 +630,12 @@ const DEFAULT_PW = "hare";
 const PW_DOC = "__config__";
 function StatsView({
   products,
+  categories,
   allergenCounts,
   hideZeroAllergen,
   onToggleHideZero
 }) {
-  const categoryStats = CATEGORIES.filter(c => c !== "전체").map(category => ({
+  const categoryStats = categories.filter(c => c !== "전체").map(category => ({
     category,
     count: products.filter(product => product["카테고리"] === category).length
   }));
@@ -5555,6 +5556,11 @@ const displayStoreName = name => {
 function App() {
   const [products, setProducts] = useState([]);
   const [stores, setStores] = useState(DEFAULT_STORE_OPTIONS);
+  const [categories, setCategories] = useState(CATEGORIES);
+  const allCategories = useMemo(() => {
+    const productCategories = products.map(product => String(product["카테고리"] || "").trim()).filter(Boolean);
+    return ["전체", ...new Set([...categories.filter(item => item !== "전체"), ...productCategories])];
+  }, [categories, products]);
   const [exporting, setExporting] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [tab, setTab] = useState("view");
@@ -5636,9 +5642,18 @@ function App() {
       setStores(list.length ? list : DEFAULT_STORE_OPTIONS);
     };
     storesRef.on("value", storesHandler);
+    const categoriesRef = db.ref("categories");
+    const categoriesHandler = snap => {
+      const value = snap.val();
+      const savedCategories = Object.values(value || {}).map(item => typeof item === "string" ? item : item && item.name).map(name => String(name || "").trim()).filter(Boolean);
+      const defaults = CATEGORIES.filter(item => item !== "전체");
+      setCategories(["전체", ...new Set([...defaults, ...savedCategories])]);
+    };
+    categoriesRef.on("value", categoriesHandler);
     return () => {
       ref.off("value", handler);
       storesRef.off("value", storesHandler);
+      categoriesRef.off("value", categoriesHandler);
     };
   }, []);
   const getOriginText = (origin, index) => {
@@ -5687,7 +5702,7 @@ function App() {
     });
   }, [products, sortOrder]);
   const managedProducts = useMemo(() => {
-    const categoryOrder = new Map(CATEGORIES.filter(item => item !== "전체").map((item, index) => [item, index]));
+    const categoryOrder = new Map(allCategories.filter(item => item !== "전체").map((item, index) => [item, index]));
     return [...products].filter(p => manageShowHidden || !p._hidden).sort((a, b) => {
       const aName = String(a["제품이름"] || "");
       const bName = String(b["제품이름"] || "");
@@ -5702,7 +5717,7 @@ function App() {
       const compared = aName.localeCompare(bName, "ko");
       return manageSortOrder === "asc" ? compared : -compared;
     });
-  }, [products, manageShowHidden, manageSortOrder, manageSortBy]);
+  }, [products, manageShowHidden, manageSortOrder, manageSortBy, allCategories]);
   const filteredProducts = useMemo(() => sortedProducts.filter(p => {
     if (p._hidden) return false; // 숨김 품목 제외
     const storeNames = getProductStoreNames(p);
@@ -5798,6 +5813,26 @@ function App() {
     const ref = db.ref("stores").push();
     await ref.set({ _id: ref.key, name, color: newStoreColor });
     setNewStoreName("");
+  };
+  const addCategory = async () => {
+    const entered = window.prompt("추가할 카테고리 이름을 입력하세요.");
+    if (!entered) return;
+    const name = entered.trim();
+    if (!name || name === "전체") {
+      alert("\"전체\"는 카테고리 이름으로 사용할 수 없습니다.");
+      return;
+    }
+    if (allCategories.some(categoryName => categoryName.toLocaleLowerCase("ko") === name.toLocaleLowerCase("ko"))) {
+      alert("이미 등록된 카테고리입니다.");
+      return;
+    }
+    try {
+      const ref = db.ref("categories").push();
+      await ref.set({ _id: ref.key, name });
+      alert("\"" + name + "\" 카테고리를 추가했습니다. 제품 등록과 검색 필터에서 사용할 수 있습니다.");
+    } catch (error) {
+      alert("카테고리 추가에 실패했습니다: " + error.message);
+    }
   };
   const renameStore = async store => {
     const entered = window.prompt("점포 이름을 입력하세요.", displayStoreName(store.name));
@@ -6123,6 +6158,7 @@ function App() {
     onClick: () => setTab("stats")
   }, "\uD83D\uDCCA \uD1B5\uACC4")), tab === "stats" && /*#__PURE__*/React.createElement(StatsView, {
     products: products,
+    categories: allCategories,
     allergenCounts: allergenCounts,
     hideZeroAllergen: hideZeroAllergen,
     onToggleHideZero: () => setHideZeroAllergen(value => !value)
@@ -6137,7 +6173,7 @@ function App() {
     className: "cat-select",
     value: category,
     onChange: e => setCategory(e.target.value)
-  }, CATEGORIES.map(c => /*#__PURE__*/React.createElement("option", {
+  }, allCategories.map(c => /*#__PURE__*/React.createElement("option", {
     key: c
   }, c))), /*#__PURE__*/React.createElement("select", {
     className: "store-select",
@@ -6328,7 +6364,11 @@ function App() {
   }, /*#__PURE__*/React.createElement("button", {
     className: "btn btn-success",
     onClick: exportExcel, disabled: exporting || !loaded
-  }, exporting ? "다운로드 준비 중…" : "⬇ 전체 엑셀 다운로드"), /*#__PURE__*/React.createElement("input", {
+  }, exporting ? "다운로드 준비 중…" : "⬇ 전체 엑셀 다운로드"), /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-secondary",
+    onClick: addCategory,
+    disabled: !loaded
+  }, "+ 카테고리 추가"), /*#__PURE__*/React.createElement("input", {
     ref: importInputRef,
     type: "file",
     accept: ".xlsx,.xls,.csv",
@@ -6483,7 +6523,7 @@ function App() {
     }, "\uC0AD\uC81C"))));
   })))))), tab === "stats" && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     className: "stats-row"
-  }, CATEGORIES.filter(c => c !== "전체").map(c => {
+  }, allCategories.filter(c => c !== "전체").map(c => {
     const cnt = products.filter(p => p["카테고리"] === c).length;
     return /*#__PURE__*/React.createElement("div", {
       key: c,
@@ -6668,7 +6708,7 @@ function App() {
       ...f,
       "카테고리": e.target.value
     }))
-  }, CATEGORIES.filter(c => c !== "전체").map(c => /*#__PURE__*/React.createElement("option", {
+  }, allCategories.filter(c => c !== "전체").map(c => /*#__PURE__*/React.createElement("option", {
     key: c,
     value: c
   }, c)), /*#__PURE__*/React.createElement("option", {
