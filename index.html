@@ -5649,16 +5649,20 @@ function App() {
     setExporting(true);
     try {
       const XLSX = await loadXlsx();
-      const cols = ["제품이름", "카테고리", "판매금액", "원산지", "주요알레르기"];
+      const cols = ["제품이름", "카테고리", "판매금액", "원산지 1순위", "원산지 2순위", "원산지 3순위", ...ALLERGENS];
       const rows = products.map(p => [
         p["제품이름"] || "",
         p["카테고리"] || "",
         p["판매금액"] ?? "",
-        [0, 1, 2].map(i => getOriginText(p["원산지"], i)).filter(Boolean).join(" / "),
-        getProductAllergens(p).join(", ")
+        ...[0, 1, 2].map(i => getOriginText(p["원산지"], i)),
+        ...ALLERGENS.map(allergen => p[allergen] === "Yes" ? "✓" : "")
       ]);
       const ws = XLSX.utils.aoa_to_sheet([cols, ...rows]);
-      ws["!cols"] = [{ wch: 26 }, { wch: 28 }, { wch: 14 }, { wch: 54 }, { wch: 42 }];
+      ws["!cols"] = cols.map(column => column === "제품이름" ? { wch: 26 }
+        : column === "카테고리" ? { wch: 28 }
+        : column === "판매금액" ? { wch: 14 }
+        : column.startsWith("원산지") ? { wch: 30 }
+        : { wch: 12 });
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "제품 목록");
       XLSX.writeFile(wb, "하레하레_제품정보_전체.xlsx");
@@ -5676,7 +5680,7 @@ function App() {
       const workbook = XLSX.read(await file.arrayBuffer(), { type: "array" });
       const sheet = workbook.Sheets[workbook.SheetNames[0]];
       const rows = XLSX.utils.sheet_to_json(sheet, { defval: "", raw: false });
-      const required = ["제품이름", "카테고리", "판매금액", "원산지", "주요알레르기"];
+      const required = ["제품이름", "카테고리", "판매금액", "원산지 1순위", "원산지 2순위", "원산지 3순위", ...ALLERGENS];
       const headers = rows.length ? Object.keys(rows[0]) : [];
       const missing = required.filter(name => !headers.includes(name));
       if (missing.length) throw new Error("필수 열이 없습니다: " + missing.join(", "));
@@ -5684,8 +5688,8 @@ function App() {
         name: String(row["제품이름"] || "").trim(),
         category: String(row["카테고리"] || "").trim(),
         price: String(row["판매금액"] ?? "").replace(/[₩원,\s]/g, ""),
-        originText: String(row["원산지"] || "").trim(),
-        allergenText: String(row["주요알레르기"] || "").trim()
+        origins: [1, 2, 3].map(rank => String(row["원산지 " + rank + "순위"] || "").trim()),
+        allergens: ALLERGENS.filter(allergen => ["✓", "✔", "√", "yes", "y", "true", "1", "○", "o"].includes(String(row[allergen] ?? "").trim().toLowerCase()))
       })).filter(row => row.name);
       if (!rawImportRows.length) throw new Error("제품이름이 입력된 행이 없습니다.");
       const importRowsByName = new Map(rawImportRows.map(row => [row.name, row]));
@@ -5700,8 +5704,8 @@ function App() {
       importRows.forEach((row, index) => {
         const existing = existingByName.get(row.name);
         const id = existing ? existing._id : "p_import_" + Date.now() + "_" + index;
-        const allergens = new Set(row.allergenText.split(/[,，、;；\n]+/).map(value => value.trim()).filter(Boolean));
-        const originParts = row.originText.split(/\s*\/\s*|[，、;；\n]+/).map(value => value.trim()).filter(Boolean).slice(0, 3);
+        const allergens = new Set(row.allergens);
+        const originParts = row.origins.filter(Boolean).slice(0, 3);
         updates[id] = {
           ...(existing || {}),
           _id: id,
