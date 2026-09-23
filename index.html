@@ -5355,7 +5355,6 @@ const displayStoreName = name => {
 function App() {
   const [products, setProducts] = useState([]);
   const [stores, setStores] = useState(DEFAULT_STORE_OPTIONS);
-  const [exportStore, setExportStore] = useState("전체");
   const [exporting, setExporting] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [tab, setTab] = useState("view");
@@ -5384,6 +5383,9 @@ function App() {
   // 관리탭: 숨김 필터 상태
   const [manageShowHidden, setManageShowHidden] = useState(true); // true=전체, false=보임만
   const [manageSortOrder, setManageSortOrder] = useState("asc"); // asc=ㄱ→ㅎ, desc=ㅎ→ㄱ
+  const [manageSortBy, setManageSortBy] = useState("category");
+  const [importing, setImporting] = useState(false);
+  const importInputRef = useRef(null);
   const [hideZeroAllergen, setHideZeroAllergen] = useState(false); // 통계에서 0건 숨김
   const initDone = useRef(false);
   useEffect(() => {
@@ -5485,13 +5487,22 @@ function App() {
     });
   }, [products, sortOrder]);
   const managedProducts = useMemo(() => {
+    const categoryOrder = new Map(CATEGORIES.filter(item => item !== "전체").map((item, index) => [item, index]));
     return [...products].filter(p => manageShowHidden || !p._hidden).sort((a, b) => {
       const aName = String(a["제품이름"] || "");
       const bName = String(b["제품이름"] || "");
+      if (manageSortBy === "category") {
+        const aCategory = String(a["카테고리"] || "");
+        const bCategory = String(b["카테고리"] || "");
+        const aOrder = categoryOrder.has(aCategory) ? categoryOrder.get(aCategory) : (aCategory ? CATEGORIES.length : CATEGORIES.length + 1);
+        const bOrder = categoryOrder.has(bCategory) ? categoryOrder.get(bCategory) : (bCategory ? CATEGORIES.length : CATEGORIES.length + 1);
+        const categoryCompare = aOrder - bOrder || aCategory.localeCompare(bCategory, "ko");
+        if (categoryCompare) return categoryCompare;
+      }
       const compared = aName.localeCompare(bName, "ko");
       return manageSortOrder === "asc" ? compared : -compared;
     });
-  }, [products, manageShowHidden, manageSortOrder]);
+  }, [products, manageShowHidden, manageSortOrder, manageSortBy]);
   const filteredProducts = useMemo(() => sortedProducts.filter(p => {
     if (p._hidden) return false; // 숨김 품목 제외
     const storeNames = getProductStoreNames(p);
@@ -5621,72 +5632,101 @@ function App() {
     await db.ref("products/" + p._id + "/_hidden").set(newVal);
   };
 
-  // ── 엑셀 다운로드 ──
+  // ── 엑셀 다운로드 / 업로드 ──
+  const loadXlsx = async () => {
+    if (window.XLSX) return window.XLSX;
+    await new Promise((resolve, reject) => {
+      const script = document.createElement("script");
+      script.src = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
+      script.onload = resolve;
+      script.onerror = reject;
+      document.head.appendChild(script);
+    });
+    return window.XLSX;
+  };
   const exportExcel = async () => {
-    const exportProducts = products.filter(p => exportStore === "전체" || getProductStoreNames(p).includes(exportStore));
-    if (!exportProducts.length) { alert("선택한 점포에 등록된 제품이 없습니다."); return; }
+    if (!products.length) { alert("다운로드할 제품이 없습니다."); return; }
     setExporting(true);
     try {
-      if (!window.XLSX) {
-        await new Promise((resolve, reject) => {
-          const s = document.createElement('script');
-          s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
-          s.onload = resolve; s.onerror = reject;
-          document.head.appendChild(s);
-        });
-      }
-    const cols = ["제품이름", "카테고리", "판매금액", "원산지 1순위", "원산지 2순위", "원산지 3순위", ...ALLERGENS];
-    const header = cols;
-    const rows = exportProducts.map(p => [
-      p["제품이름"] || "",
-      p["카테고리"] || "",
-      p["판매금액"] ?? "",
-      getOriginText(p["원산지"], 0),
-      getOriginText(p["원산지"], 1),
-      getOriginText(p["원산지"], 2),
-      ...ALLERGENS.map(a => p[a] || "")
-    ]);
-    const ws = XLSX.utils.aoa_to_sheet([header, ...rows]);
-    // 열 너비 설정
-    ws['!cols'] = cols.map(c => ({
-      wch: c === "제품이름" ? 24
-        : c === "카테고리" ? 22
-        : c === "판매금액" ? 12
-        : c.startsWith("원산지") ? 42
-        : 8
-    }));
-    // 헤더 행 스타일 (배경색)
-    const range = XLSX.utils.decode_range(ws['!ref']);
-    for (let C = range.s.c; C <= range.e.c; C++) {
-      const addr = XLSX.utils.encode_cell({
-        r: 0,
-        c: C
-      });
-      if (ws[addr]) ws[addr].s = {
-        fill: {
-          fgColor: {
-            rgb: "1A1A2E"
-          }
-        },
-        font: {
-          color: {
-            rgb: "FFFFFF"
-          },
-          bold: true
-        },
-        alignment: {
-          horizontal: "center"
-        }
-      };
-    }
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "알레르기 목록");
-    const suffix = exportStore === "전체" ? "전체" : displayStoreName(exportStore);
-    XLSX.writeFile(wb, ("알레르기_유발물질_" + suffix).replace(/[\\/:*?"<>|]/g, "_") + ".xlsx");
+      const XLSX = await loadXlsx();
+      const cols = ["제품이름", "카테고리", "판매금액", "원산지", "주요알레르기"];
+      const rows = products.map(p => [
+        p["제품이름"] || "",
+        p["카테고리"] || "",
+        p["판매금액"] ?? "",
+        [0, 1, 2].map(i => getOriginText(p["원산지"], i)).filter(Boolean).join(" / "),
+        getProductAllergens(p).join(", ")
+      ]);
+      const ws = XLSX.utils.aoa_to_sheet([cols, ...rows]);
+      ws["!cols"] = [{ wch: 26 }, { wch: 28 }, { wch: 14 }, { wch: 54 }, { wch: 42 }];
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "제품 목록");
+      XLSX.writeFile(wb, "하레하레_제품정보_전체.xlsx");
     } catch (error) {
       console.error(error);
       alert("엑셀 다운로드에 실패했습니다. 인터넷 연결을 확인하고 다시 시도해주세요.");
     } finally { setExporting(false); }
+  };
+  const importExcel = async event => {
+    const file = event.target.files && event.target.files[0];
+    if (!file) return;
+    setImporting(true);
+    try {
+      const XLSX = await loadXlsx();
+      const workbook = XLSX.read(await file.arrayBuffer(), { type: "array" });
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(sheet, { defval: "", raw: false });
+      const required = ["제품이름", "카테고리", "판매금액", "원산지", "주요알레르기"];
+      const headers = rows.length ? Object.keys(rows[0]) : [];
+      const missing = required.filter(name => !headers.includes(name));
+      if (missing.length) throw new Error("필수 열이 없습니다: " + missing.join(", "));
+      const rawImportRows = rows.map(row => ({
+        name: String(row["제품이름"] || "").trim(),
+        category: String(row["카테고리"] || "").trim(),
+        price: String(row["판매금액"] ?? "").replace(/[₩원,\s]/g, ""),
+        originText: String(row["원산지"] || "").trim(),
+        allergenText: String(row["주요알레르기"] || "").trim()
+      })).filter(row => row.name);
+      if (!rawImportRows.length) throw new Error("제품이름이 입력된 행이 없습니다.");
+      const importRowsByName = new Map(rawImportRows.map(row => [row.name, row]));
+      const importRows = [...importRowsByName.values()];
+      const duplicateNames = rawImportRows.length - importRows.length;
+      if (importRows.some(row => row.price !== "" && !Number.isFinite(Number(row.price)))) {
+        throw new Error("판매금액에는 숫자만 입력해주세요.");
+      }
+      const existingByName = new Map(products.map(product => [String(product["제품이름"] || "").trim(), product]));
+      const counts = { updated: 0, added: 0 };
+      const updates = {};
+      importRows.forEach((row, index) => {
+        const existing = existingByName.get(row.name);
+        const id = existing ? existing._id : "p_import_" + Date.now() + "_" + index;
+        const allergens = new Set(row.allergenText.split(/[,，、;；\n]+/).map(value => value.trim()).filter(Boolean));
+        const originParts = row.originText.split(/\s*\/\s*|[，、;；\n]+/).map(value => value.trim()).filter(Boolean).slice(0, 3);
+        updates[id] = {
+          ...(existing || {}),
+          _id: id,
+          "제품이름": row.name,
+          "카테고리": row.category,
+          "판매금액": row.price === "" ? "" : Number(row.price),
+          "원산지": originParts.map((text, originIndex) => ({ rank: originIndex + 1, text })),
+          ...Object.fromEntries(ALLERGENS.map(allergen => [allergen, allergens.has(allergen) ? "Yes" : "No"]))
+        };
+        if (existing) counts.updated += 1;
+        else counts.added += 1;
+      });
+      const message = "제품정보 " + counts.updated + "종 수정, " + counts.added + "종 추가" +
+        (duplicateNames ? "\n같은 제품명 행 " + duplicateNames + "개는 마지막 입력값으로 반영됩니다." : "") +
+        "\n판매 점포와 숨김 설정은 유지됩니다. 파일에 없는 제품은 삭제되지 않습니다.\n반영할까요?";
+      if (!window.confirm(message)) return;
+      await db.ref("products").update(updates);
+      alert("엑셀 반영 완료: " + counts.updated + "종 수정, " + counts.added + "종 추가");
+    } catch (error) {
+      console.error(error);
+      alert("엑셀 업로드에 실패했습니다. " + (error.message || "파일 형식을 확인해주세요."));
+    } finally {
+      setImporting(false);
+      event.target.value = "";
+    }
   };
   const handleManageTabClick = () => {
     if (isManageLocked) {
@@ -6080,22 +6120,25 @@ function App() {
     className: "manage-title"
   }, "\uC81C\uD488 \uBAA9\uB85D (", products.length, "\uC885)"), /*#__PURE__*/React.createElement("div", {
     className: "manage-list-actions",
-    style: {
-      display: "flex",
-      gap: 8
-    }
-  }, /*#__PURE__*/React.createElement("select", {
-    className: "store-select", value: exportStore, "aria-label": "엑셀 다운로드 점포",
-    style: { width: "auto" }, onChange: e => setExportStore(e.target.value)
-  }, React.createElement("option", { value: "전체" }, "전체 점포"), stores.map(store => React.createElement("option", {
-    key: store._id, value: store.name
-  }, displayStoreName(store.name)))), /*#__PURE__*/React.createElement("button", {
+    style: { display: "flex", gap: 8 }
+  }, /*#__PURE__*/React.createElement("button", {
     className: "btn btn-success",
     onClick: exportExcel, disabled: exporting || !loaded
-  }, exporting ? "다운로드 준비 중…" : "⬇ " + (exportStore === "전체" ? "전체" : displayStoreName(exportStore)) + " 엑셀 다운로드"), /*#__PURE__*/React.createElement("button", {
+  }, exporting ? "다운로드 준비 중…" : "⬇ 전체 엑셀 다운로드"), /*#__PURE__*/React.createElement("input", {
+    ref: importInputRef,
+    type: "file",
+    accept: ".xlsx,.xls,.csv",
+    onChange: importExcel,
+    style: { display: "none" },
+    "aria-label": "엑셀 파일 업로드"
+  }), /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-secondary",
+    onClick: () => importInputRef.current && importInputRef.current.click(),
+    disabled: importing || !loaded
+  }, importing ? "업로드 처리 중…" : "⬆ 엑셀 업로드"), /*#__PURE__*/React.createElement("button", {
     className: "btn btn-primary",
     onClick: openNew
-  }, "+ \uC0C8 \uC81C\uD488 \uCD94\uAC00"))), /*#__PURE__*/React.createElement("div", {
+  }, "+ 새 제품 추가"))), /*#__PURE__*/React.createElement("div", {
     className: "manage-filters"
   }, /*#__PURE__*/React.createElement("span", {
     style: {
@@ -6103,6 +6146,13 @@ function App() {
       fontWeight: 700,
       color: "#888"
     }
+  }, "\uC815\uB82C:"), /*#__PURE__*/React.createElement("select", {
+    className: "manage-filter-btn",
+    value: manageSortBy,
+    onChange: e => setManageSortBy(e.target.value),
+    "aria-label": "관리 목록 정렬 기준"
+  }, /*#__PURE__*/React.createElement("option", { value: "category" }, "카테고리별 · 이름 ㄱ-ㅎ"), /*#__PURE__*/React.createElement("option", { value: "name" }, "제품이름 ㄱ-ㅎ")), /*#__PURE__*/React.createElement("span", {
+    style: { fontSize: 12, fontWeight: 700, color: "#888" }
   }, "\uBCF4\uAE30 \uD544\uD130:"), /*#__PURE__*/React.createElement("button", {
     className: `manage-filter-btn ${manageShowHidden ? "active" : ""}`,
     onClick: () => setManageShowHidden(true)
