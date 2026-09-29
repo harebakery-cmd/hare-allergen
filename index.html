@@ -571,6 +571,22 @@
       .manage-table td:nth-child(7) .btn-sm{min-width:0;white-space:nowrap;padding:8px 7px}
     }
 </style>
+<style>
+    .store-management-summary{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:44px;margin:0;cursor:pointer;list-style:none}
+    .store-management-summary::-webkit-details-marker{display:none}
+    .store-management-summary::marker{content:""}
+    .store-management-summary:focus-visible{outline:2px solid var(--blue);outline-offset:4px;border-radius:4px}
+    .store-management-accordion[open]>.store-management-summary{margin-bottom:16px}
+    .accordion-state{flex-shrink:0;font-size:12px;font-weight:500;color:#737373}
+    .accordion-state::after{content:"펼치기 +"}
+    .store-management-accordion[open] .accordion-state::after{content:"접기 −"}
+    .manage-search{margin-bottom:16px;display:grid;gap:8px}
+    .manage-search-controls{display:flex;gap:8px;align-items:center}
+    .manage-search-controls .search-input{flex:1;min-width:0;height:44px}
+    .manage-search-controls .btn{min-height:44px;flex-shrink:0;padding:8px 12px}
+    .manage-search-count{font-size:12px;color:#737373}
+    .manage-table td.manage-search-empty{text-align:center;padding:32px 16px;color:#737373;white-space:normal}
+</style>
 </head>
 <body>
   <div id="splash">
@@ -5590,6 +5606,7 @@ function App() {
   const [manageShowHidden, setManageShowHidden] = useState(true); // true=전체, false=보임만
   const [manageSortOrder, setManageSortOrder] = useState("asc"); // asc=ㄱ→ㅎ, desc=ㅎ→ㄱ
   const [manageSortBy, setManageSortBy] = useState("category");
+  const [manageSearch, setManageSearch] = useState("");
   const [importing, setImporting] = useState(false);
   const importInputRef = useRef(null);
   const [hideZeroAllergen, setHideZeroAllergen] = useState(false); // 통계에서 0건 숨김
@@ -5703,7 +5720,10 @@ function App() {
   }, [products, sortOrder]);
   const managedProducts = useMemo(() => {
     const categoryOrder = new Map(allCategories.filter(item => item !== "전체").map((item, index) => [item, index]));
-    return [...products].filter(p => manageShowHidden || !p._hidden).sort((a, b) => {
+    const normalizeQuery = value => String(value || "").normalize("NFKC").toLocaleLowerCase("ko").replace(/\s+/g, "");
+    const query = normalizeQuery(manageSearch);
+    return [...products].filter(p => (manageShowHidden || !p._hidden) &&
+      (!query || [p["제품이름"], p["카테고리"]].some(value => normalizeQuery(value).includes(query)))).sort((a, b) => {
       const aName = String(a["제품이름"] || "");
       const bName = String(b["제품이름"] || "");
       if (manageSortBy === "category") {
@@ -5717,7 +5737,7 @@ function App() {
       const compared = aName.localeCompare(bName, "ko");
       return manageSortOrder === "asc" ? compared : -compared;
     });
-  }, [products, manageShowHidden, manageSortOrder, manageSortBy, allCategories]);
+  }, [products, manageShowHidden, manageSearch, manageSortOrder, manageSortBy, allCategories]);
   const filteredProducts = useMemo(() => sortedProducts.filter(p => {
     if (p._hidden) return false; // 숨김 품목 제외
     const storeNames = getProductStoreNames(p);
@@ -6297,11 +6317,13 @@ function App() {
       marginLeft: 4
     },
     onClick: lockManage
-  }, "\uC7A0\uAE08")), /*#__PURE__*/React.createElement("div", {
-    className: "manage-section"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "manage-title"
-  }, "\uC810\uD3EC\uBCC4 \uC0C9\uC0C1 \uAD00\uB9AC"), /*#__PURE__*/React.createElement("p", {
+  }, "\uC7A0\uAE08")), /*#__PURE__*/React.createElement("details", {
+    className: "manage-section store-management-accordion"
+  }, /*#__PURE__*/React.createElement("summary", {
+    className: "manage-title store-management-summary"
+  }, "점포별 색상 관리 보기", /*#__PURE__*/React.createElement("span", {
+    className: "accordion-state", "aria-hidden": "true"
+  })), /*#__PURE__*/React.createElement("p", {
     style: {
       fontSize: 12,
       color: "#667368",
@@ -6383,6 +6405,23 @@ function App() {
     className: "btn btn-primary",
     onClick: openNew
   }, "+ 새 제품 추가"))), /*#__PURE__*/React.createElement("div", {
+    className: "manage-search"
+  }, /*#__PURE__*/React.createElement("label", {
+    className: "form-label", htmlFor: "manage-product-search"
+  }, "제품 검색"), /*#__PURE__*/React.createElement("div", {
+    className: "manage-search-controls"
+  }, /*#__PURE__*/React.createElement("input", {
+    id: "manage-product-search", className: "search-input", type: "search",
+    value: manageSearch, placeholder: "제품명 또는 카테고리 검색",
+    onChange: e => setManageSearch(e.target.value),
+    onKeyDown: e => { if (e.key === "Escape") setManageSearch(""); },
+    "aria-controls": "manage-product-table"
+  }), /*#__PURE__*/React.createElement("button", {
+    type: "button", className: "btn btn-secondary", disabled: !manageSearch,
+    onClick: () => setManageSearch("")
+  }, "검색 초기화")), /*#__PURE__*/React.createElement("p", {
+    className: "manage-search-count", role: "status", "aria-live": "polite"
+  }, "표시 ", managedProducts.length, "종 / 전체 ", products.length, "종")), /*#__PURE__*/React.createElement("div", {
     className: "manage-filters"
   }, /*#__PURE__*/React.createElement("span", {
     style: {
@@ -6415,7 +6454,7 @@ function App() {
       overflowX: "auto"
     }
   }, /*#__PURE__*/React.createElement("table", {
-    className: "manage-table"
+    className: "manage-table", id: "manage-product-table"
   }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", {
     style: {
       minWidth: 160
@@ -6453,7 +6492,9 @@ function App() {
     style: {
       minWidth: 100
     }
-  }, "\uAD00\uB9AC"))), /*#__PURE__*/React.createElement("tbody", null, managedProducts.map(p => {
+  }, "\uAD00\uB9AC"))), /*#__PURE__*/React.createElement("tbody", null, managedProducts.length === 0 && React.createElement("tr", null,
+    React.createElement("td", { colSpan: 7, className: "manage-search-empty" },
+      manageSearch.trim() ? "검색 결과가 없습니다. 다른 제품명이나 카테고리로 검색해 주세요." : "표시할 제품이 없습니다.")), managedProducts.map(p => {
     const al = getProductAllergens(p);
     return /*#__PURE__*/React.createElement("tr", {
       key: p._id,
