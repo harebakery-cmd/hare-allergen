@@ -127,6 +127,9 @@
     .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
     .form-group{display:flex;flex-direction:column;gap:6px}
     .form-label{font-size:12px;font-weight:700;color:#555}
+    .manage-price-pair{display:flex;flex-direction:column;gap:3px;white-space:nowrap}
+    .manage-price-pair>div{display:flex;align-items:baseline;gap:7px}
+    .manage-price-pair span{font-size:10px;font-weight:600;color:#777}
     .form-input,.form-select{padding:10px 14px;border-radius:10px;border:2px solid #e0e0e0;font-family:'Noto Sans KR',sans-serif;font-size:14px;outline:none;transition:border .2s;width:100%}
     .form-input:focus,.form-select:focus{border-color:#1a1a2e}
     .manage-private-section{margin:14px 0 18px;padding:16px;border:1px solid #e7dccb;border-radius:14px;background:linear-gradient(135deg,#fffaf2 0%,#fff 100%)}
@@ -5699,6 +5702,14 @@ function App() {
     await db.ref("products/" + id).remove();
   };
   const getProductAllergens = p => ALLERGENS.filter(a => p[a] === "Yes");
+  const renderManagePrice = p => {
+    const single = Number(p["판매금액"]) > 0 ? Number(p["판매금액"]).toLocaleString("ko-KR") + "원" : "";
+    const set = Number(p["세트금액"]) > 0 ? Number(p["세트금액"]).toLocaleString("ko-KR") + "원" : "";
+    if (single && set) return React.createElement("div", { className: "manage-price-pair" },
+      React.createElement("div", null, React.createElement("span", null, "낱개"), single),
+      React.createElement("div", null, React.createElement("span", null, "세트"), set));
+    return single || set || "-";
+  };
   const getProductStoreNames = p => {
     const savedNames = Array.isArray(p["판매점포"])
       ? p["판매점포"].map(normalizeStoreName).filter(Boolean)
@@ -5771,6 +5782,7 @@ function App() {
       "제품이름": "",
       "카테고리": "일반빵",
       "판매금액": 0,
+      "세트금액": "",
       "판매점포": [],
       "원산지": [
         { rank: 1, text: "" },
@@ -5804,6 +5816,7 @@ function App() {
     )];
     const normalizedFormData = {
       ...formData,
+      "세트금액": Number(formData["세트금액"]) > 0 ? Number(formData["세트금액"]) : null,
       "판매점포": selectedStoreNames
     };
     setSaving(true);
@@ -5904,18 +5917,32 @@ function App() {
     setExporting(true);
     try {
       const XLSX = await loadXlsx();
-      const cols = ["제품이름", "카테고리", "판매금액", "원산지 1순위", "원산지 2순위", "원산지 3순위", ...ALLERGENS];
+      const cols = ["제품이름", "카테고리", "판매금액", "세트금액", "가격 구성(자동)", "원산지 1순위", "원산지 2순위", "원산지 3순위", ...ALLERGENS];
       const rows = products.map(p => [
         p["제품이름"] || "",
         p["카테고리"] || "",
         p["판매금액"] ?? "",
+        p["세트금액"] ?? "",
+        "",
         ...[0, 1, 2].map(i => getOriginText(p["원산지"], i)),
         ...ALLERGENS.map(allergen => p[allergen] === "Yes" ? "✓" : "")
       ]);
       const ws = XLSX.utils.aoa_to_sheet([cols, ...rows]);
+      for (let row = 2; row <= Math.max(rows.length + 1, 501); row++) {
+        const p = products[row - 2];
+        const single = p && Number(p["판매금액"]) > 0;
+        const set = p && Number(p["세트금액"]) > 0;
+        ws[`E${row}`] = {
+          t: "str",
+          f: `IF(AND(C${row}>0,D${row}>0),"낱개 + 세트",IF(C${row}>0,"단품",IF(D${row}>0,"세트만","")))`,
+          v: single && set ? "낱개 + 세트" : single ? "단품" : set ? "세트만" : ""
+        };
+      }
+      ws["!ref"] = `A1:${XLSX.utils.encode_col(cols.length - 1)}${Math.max(rows.length + 1, 501)}`;
       ws["!cols"] = cols.map(column => column === "제품이름" ? { wch: 26 }
         : column === "카테고리" ? { wch: 28 }
-        : column === "판매금액" ? { wch: 14 }
+        : column === "판매금액" || column === "세트금액" ? { wch: 14 }
+        : column === "가격 구성(자동)" ? { wch: 18 }
         : column.startsWith("원산지") ? { wch: 30 }
         : { wch: 12 });
       const wb = XLSX.utils.book_new();
@@ -5939,10 +5966,12 @@ function App() {
       const headers = rows.length ? Object.keys(rows[0]) : [];
       const missing = required.filter(name => !headers.includes(name));
       if (missing.length) throw new Error("필수 열이 없습니다: " + missing.join(", "));
+      const hasSetPriceColumn = headers.includes("세트금액");
       const rawImportRows = rows.map(row => ({
         name: String(row["제품이름"] || "").trim(),
         category: String(row["카테고리"] || "").trim(),
         price: String(row["판매금액"] ?? "").replace(/[₩원,\s]/g, ""),
+        setPrice: hasSetPriceColumn ? String(row["세트금액"] ?? "").replace(/[₩원,\s]/g, "") : "",
         origins: [1, 2, 3].map(rank => String(row["원산지 " + rank + "순위"] || "").trim()),
         allergens: ALLERGENS.filter(allergen => ["✓", "✔", "√", "yes", "y", "true", "1", "○", "o"].includes(String(row[allergen] ?? "").trim().toLowerCase()))
       })).filter(row => row.name);
@@ -5952,6 +5981,9 @@ function App() {
       const duplicateNames = rawImportRows.length - importRows.length;
       if (importRows.some(row => row.price !== "" && !Number.isFinite(Number(row.price)))) {
         throw new Error("판매금액에는 숫자만 입력해주세요.");
+      }
+      if (hasSetPriceColumn && importRows.some(row => row.setPrice !== "" && !Number.isFinite(Number(row.setPrice)))) {
+        throw new Error("세트금액에는 숫자만 입력해주세요.");
       }
       const existingByName = new Map(products.map(product => [String(product["제품이름"] || "").trim(), product]));
       const counts = { updated: 0, added: 0 };
@@ -5967,6 +5999,7 @@ function App() {
           "제품이름": row.name,
           "카테고리": row.category,
           "판매금액": row.price === "" ? "" : Number(row.price),
+          ...(hasSetPriceColumn ? { "세트금액": Number(row.setPrice) > 0 ? Number(row.setPrice) : null } : {}),
           "원산지": originParts.map((text, originIndex) => ({ rank: originIndex + 1, text })),
           ...Object.fromEntries(ALLERGENS.map(allergen => [allergen, allergens.has(allergen) ? "Yes" : "No"]))
         };
@@ -5975,7 +6008,7 @@ function App() {
       });
       const message = "제품정보 " + counts.updated + "종 수정, " + counts.added + "종 추가" +
         (duplicateNames ? "\n같은 제품명 행 " + duplicateNames + "개는 마지막 입력값으로 반영됩니다." : "") +
-        "\n판매 점포와 숨김 설정은 유지됩니다. 파일에 없는 제품은 삭제되지 않습니다.\n반영할까요?";
+        "\n판매 점포와 숨김 설정은 유지됩니다. 세트금액 열이 있다면 빈칸은 기존 세트 금액을 지웁니다. 파일에 없는 제품은 삭제되지 않습니다.\n반영할까요?";
       if (!window.confirm(message)) return;
       await db.ref("products").update(updates);
       alert("엑셀 반영 완료: " + counts.updated + "종 수정, " + counts.added + "종 추가");
@@ -6520,7 +6553,7 @@ function App() {
         fontWeight: 700,
         whiteSpace: "nowrap"
       }
-    }, p["판매금액"] ? Number(p["판매금액"]).toLocaleString("ko-KR") + "원" : "-"), /*#__PURE__*/React.createElement("td", {
+    }, renderManagePrice(p)), /*#__PURE__*/React.createElement("td", {
       style: {
         fontSize: 11,
         color: "#666",
@@ -6766,7 +6799,7 @@ function App() {
     className: "form-group"
   }, /*#__PURE__*/React.createElement("label", {
     className: "form-label"
-  }, "\uD310\uB9E4\uAE08\uC561"), /*#__PURE__*/React.createElement("input", {
+  }, "낱개 금액"), /*#__PURE__*/React.createElement("input", {
     className: "form-input",
     type: "number",
     min: "0",
@@ -6777,6 +6810,21 @@ function App() {
       "\uD310\uB9E4\uAE08\uC561": Number(e.target.value) || 0
     })),
     placeholder: "\uC608) 3800"
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "form-group"
+  }, /*#__PURE__*/React.createElement("label", {
+    className: "form-label"
+  }, "세트 금액 (선택)"), /*#__PURE__*/React.createElement("input", {
+    className: "form-input",
+    type: "number",
+    min: "0",
+    step: "100",
+    value: formData["세트금액"] ?? "",
+    onChange: e => setFormData(f => ({
+      ...f,
+      "세트금액": e.target.value
+    })),
+    placeholder: "예) 10000"
   }))), /*#__PURE__*/React.createElement("div", {
     className: "form-group",
     style: {
