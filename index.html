@@ -589,6 +589,24 @@
     .manage-search-controls .btn{min-height:44px;flex-shrink:0;padding:8px 12px}
     .manage-search-count{font-size:12px;color:#737373}
     .manage-table td.manage-search-empty{text-align:center;padding:32px 16px;color:#737373;white-space:normal}
+
+    /* 제품 등록·수정 피드백 */
+    .product-mini-toast{
+      position:fixed;left:50%;bottom:max(22px,env(safe-area-inset-bottom) + 14px);
+      transform:translateX(-50%);z-index:300;display:flex;align-items:center;gap:10px;
+      width:max-content;max-width:calc(100vw - 32px);padding:10px 14px;
+      border:1px solid #d4d4d4;border-radius:10px;background:#171717;color:#fff;
+      box-shadow:0 8px 24px rgba(0,0,0,.16);font-size:13px;font-weight:600;
+      line-height:1.45;word-break:keep-all;overflow-wrap:anywhere;
+      animation:product-toast-in .2s ease-out both
+    }
+    .product-mini-toast.error{background:#fff;color:#9f1239;border-color:#fda4af}
+    .product-mini-toast-icon{font-size:15px;line-height:1;flex-shrink:0}
+    @keyframes product-toast-in{
+      from{opacity:0;transform:translate(-50%,8px)}
+      to{opacity:1;transform:translate(-50%,0)}
+    }
+    @media(prefers-reduced-motion:reduce){.product-mini-toast{animation:none}}
 </style>
 </head>
 <body>
@@ -5596,6 +5614,14 @@ function App() {
   const [formData, setFormData] = useState(null);
   const [sortOrder, setSortOrder] = useState("asc");
   const [saving, setSaving] = useState(false);
+  const [productToast, setProductToast] = useState(null);
+  const productToastTimer = useRef(null);
+  const showProductToast = (message, kind = "success") => {
+    clearTimeout(productToastTimer.current);
+    setProductToast({ message, kind });
+    productToastTimer.current = setTimeout(() => setProductToast(null), kind === "error" ? 4500 : 3000);
+  };
+  useEffect(() => () => clearTimeout(productToastTimer.current), []);
   const [managePw, setManagePw] = useState(DEFAULT_PW);
   const [isManageLocked, setIsManageLocked] = useState(true);
   const [showPwModal, setShowPwModal] = useState(false);
@@ -5805,7 +5831,7 @@ function App() {
   };
   const saveForm = async () => {
     if (!formData["제품이름"].trim()) {
-      alert("제품이름을 입력하세요.");
+      showProductToast("제품이름을 입력하세요.", "error");
       return;
     }
     const validStoreNames = new Set(stores.map(store => store.name));
@@ -5826,10 +5852,12 @@ function App() {
         _id: editProduct
       } : normalizedFormData);
       setShowForm(false);
+      showProductToast(editProduct ? "제품 수정이 완료되었습니다." : "제품 등록이 완료되었습니다.");
     } catch (e) {
-      alert("저장 실패: " + e.message);
+      showProductToast("저장 실패: " + (e.message || "잠시 후 다시 시도해주세요."), "error");
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   };
   const deleteProduct = async id => {
     if (!window.confirm("삭제하시겠습니까?")) return;
@@ -6101,7 +6129,13 @@ function App() {
       animation: "load 1.2s ease-in-out infinite"
     }
   })), /*#__PURE__*/React.createElement("style", null, `@keyframes load{0%{transform:translateX(-100%)}100%{transform:translateX(200%)}}`));
-  return /*#__PURE__*/React.createElement(React.Fragment, null, showPwModal && /*#__PURE__*/React.createElement("div", {
+  return /*#__PURE__*/React.createElement(React.Fragment, null, productToast && /*#__PURE__*/React.createElement("div", {
+    className: `product-mini-toast ${productToast.kind === "error" ? "error" : ""}`,
+    role: productToast.kind === "error" ? "alert" : "status"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "product-mini-toast-icon",
+    "aria-hidden": true
+  }, productToast.kind === "error" ? "!" : "✓"), productToast.message), showPwModal && /*#__PURE__*/React.createElement("div", {
     className: "lock-overlay",
     onClick: () => setShowPwModal(false)
   }, /*#__PURE__*/React.createElement("div", {
