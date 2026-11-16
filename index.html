@@ -619,13 +619,17 @@
     .save-review-info div{min-width:0;padding:10px 12px;background:#f7f7f7;border:1px solid #e5e5e5;border-radius:8px;overflow-wrap:anywhere}
     .save-review-info dt{font-size:11px;color:#737373;margin-bottom:3px}
     .save-review-info dd{font-size:13px;font-weight:600;color:#171717}
+    .save-review-stores{display:flex;flex-wrap:wrap;gap:7px;margin-top:2px}
+    .save-review-store{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid #d4d4d4;border-radius:7px;background:#fff;color:#171717;font-size:13px;font-weight:700;white-space:nowrap}
+    .save-review-store .store-dot{width:13px;height:13px;box-shadow:0 0 0 2px #fff,0 0 0 3px #d4d4d4}
     .save-review-group{padding:14px;border:1px solid #d4d4d4;border-radius:10px;margin-bottom:10px}
-    .save-review-group.selected{border-color:#93c5fd;background:#eff6ff}
+    .save-review-group.selected{border:2px solid #2563eb;background:#eff6ff;padding:16px}
     .save-review-group.unselected{border-color:#d4d4d4;background:#fafafa}
     .save-review-group h3{font-size:14px;margin-bottom:10px;color:#171717}
+    .save-review-group.selected h3{font-size:16px;color:#1e40af;margin-bottom:12px}
     .save-review-chips{display:flex;flex-wrap:wrap;gap:6px}
     .save-review-chip{display:inline-flex;align-items:center;gap:5px;padding:5px 9px;border-radius:6px;font-size:12px;font-weight:700}
-    .save-review-group.selected .save-review-chip{color:#1e40af;background:#fff;border:1px solid #93c5fd}
+    .save-review-group.selected .save-review-chip{color:#fff;background:#1e40af;border:1px solid #1e40af;font-size:14px;padding:7px 11px}
     .save-review-group.unselected .save-review-chip{color:#404040;background:#fff;border:1px solid #c6c6c6}
     .save-review-none{font-size:13px;font-weight:700;color:#9f1239}
     .save-review-warning{padding:11px 12px;border-radius:8px;background:#fff7ed;color:#9a3412;font-size:12px;font-weight:700;line-height:1.55}
@@ -6182,7 +6186,14 @@ function App() {
     /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("dt", null, "제품이름"), /*#__PURE__*/React.createElement("dd", null, formData["제품이름"].trim())),
     /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("dt", null, "카테고리"), /*#__PURE__*/React.createElement("dd", null, formData["카테고리"] || "미분류")),
     /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("dt", null, "판매금액"), /*#__PURE__*/React.createElement("dd", null, Number(formData["판매금액"]) > 0 ? Number(formData["판매금액"]).toLocaleString("ko-KR") + "원" : "미입력", Number(formData["세트금액"]) > 0 ? " · 세트 " + Number(formData["세트금액"]).toLocaleString("ko-KR") + "원" : "")),
-    /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("dt", null, "판매 점포"), /*#__PURE__*/React.createElement("dd", null, getProductStoreNames(formData).map(displayStoreName).join(", ") || "선택 없음")),
+    /*#__PURE__*/React.createElement("div", { className: "save-review-store-field", style: { gridColumn: "1 / -1" } },
+      /*#__PURE__*/React.createElement("dt", null, "판매 점포"),
+      /*#__PURE__*/React.createElement("dd", { className: "save-review-stores" },
+        getProductStoreNames(formData).length
+          ? getProductStoreNames(formData).map(name => /*#__PURE__*/React.createElement("span", { key: name, className: "save-review-store" },
+              /*#__PURE__*/React.createElement("i", { className: "store-dot", style: { "--store-color": getStoreMeta(name).color }, "aria-hidden": true }),
+              displayStoreName(name)))
+          : "선택 없음")),
     /*#__PURE__*/React.createElement("div", { style: { gridColumn: "1 / -1" } }, /*#__PURE__*/React.createElement("dt", null, "원산지 1~3순위"), /*#__PURE__*/React.createElement("dd", null, [0, 1, 2].map(i => getOriginText(formData["원산지"], i) || "미입력").join(" / ")))
   ),
   /*#__PURE__*/React.createElement("section", { className: "save-review-group selected" },
