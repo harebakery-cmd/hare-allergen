@@ -620,8 +620,8 @@
     .save-review-info dt{font-size:11px;color:#737373;margin-bottom:3px}
     .save-review-info dd{font-size:13px;font-weight:600;color:#171717}
     .save-review-stores{display:flex;flex-wrap:wrap;gap:7px;margin-top:2px}
-    .save-review-store{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid #d4d4d4;border-radius:7px;background:#fff;color:#171717;font-size:13px;font-weight:700;white-space:nowrap}
-    .save-review-store .store-dot{width:13px;height:13px;box-shadow:0 0 0 2px #fff,0 0 0 3px #d4d4d4}
+    .save-review-store{gap:8px;padding:8px 12px;font-size:13px;font-weight:700;white-space:nowrap;cursor:default}
+    .save-review-store .store-dot{width:13px;height:13px;box-shadow:0 0 0 2px var(--forest),0 0 0 3px #fff}
     .save-review-group{padding:14px;border:1px solid #d4d4d4;border-radius:10px;margin-bottom:10px}
     .save-review-group.selected{border:2px solid #2563eb;background:#eff6ff;padding:16px}
     .save-review-group.unselected{border-color:#d4d4d4;background:#fafafa}
@@ -6190,7 +6190,7 @@ function App() {
       /*#__PURE__*/React.createElement("dt", null, "판매 점포"),
       /*#__PURE__*/React.createElement("dd", { className: "save-review-stores" },
         getProductStoreNames(formData).length
-          ? getProductStoreNames(formData).map(name => /*#__PURE__*/React.createElement("span", { key: name, className: "save-review-store" },
+          ? getProductStoreNames(formData).map(name => /*#__PURE__*/React.createElement("span", { key: name, className: "store-choice on save-review-store" },
               /*#__PURE__*/React.createElement("i", { className: "store-dot", style: { "--store-color": getStoreMeta(name).color }, "aria-hidden": true }),
               displayStoreName(name)))
           : "선택 없음")),
