@@ -607,6 +607,33 @@
       to{opacity:1;transform:translate(-50%,0)}
     }
     @media(prefers-reduced-motion:reduce){.product-mini-toast{animation:none}}
+
+    /* 저장 전 알레르기 검토 */
+    .allergen-toggle.off{background:#f4f4f4;border-color:#bdbdbd;color:#404040}
+    .allergen-toggle.on{background:#eaf2ff;border-color:#2563eb;color:#1e40af}
+    .allergen-toggle-mark{display:inline-grid;place-items:center;flex:0 0 18px;width:18px;height:18px;border:1.5px solid currentColor;border-radius:4px;font-size:12px;font-weight:800;line-height:1}
+    .save-review-overlay{z-index:140}
+    .save-review-modal{max-width:650px;max-height:min(88vh,760px);overflow-y:auto}
+    .save-review-intro{margin:-8px 0 18px;color:#525252;font-size:13px;line-height:1.6}
+    .save-review-info{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:18px}
+    .save-review-info div{min-width:0;padding:10px 12px;background:#f7f7f7;border:1px solid #e5e5e5;border-radius:8px;overflow-wrap:anywhere}
+    .save-review-info dt{font-size:11px;color:#737373;margin-bottom:3px}
+    .save-review-info dd{font-size:13px;font-weight:600;color:#171717}
+    .save-review-group{padding:14px;border:1px solid #d4d4d4;border-radius:10px;margin-bottom:10px}
+    .save-review-group.selected{border-color:#93c5fd;background:#eff6ff}
+    .save-review-group.unselected{border-color:#d4d4d4;background:#fafafa}
+    .save-review-group h3{font-size:14px;margin-bottom:10px;color:#171717}
+    .save-review-chips{display:flex;flex-wrap:wrap;gap:6px}
+    .save-review-chip{display:inline-flex;align-items:center;gap:5px;padding:5px 9px;border-radius:6px;font-size:12px;font-weight:700}
+    .save-review-group.selected .save-review-chip{color:#1e40af;background:#fff;border:1px solid #93c5fd}
+    .save-review-group.unselected .save-review-chip{color:#404040;background:#fff;border:1px solid #c6c6c6}
+    .save-review-none{font-size:13px;font-weight:700;color:#9f1239}
+    .save-review-warning{padding:11px 12px;border-radius:8px;background:#fff7ed;color:#9a3412;font-size:12px;font-weight:700;line-height:1.55}
+    .save-review-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:18px}
+    @media(max-width:600px){
+      .save-review-info{grid-template-columns:1fr}
+      .save-review-actions .btn{flex:1;padding:10px 12px}
+    }
 </style>
 </head>
 <body>
@@ -5611,6 +5638,7 @@ function App() {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [editProduct, setEditProduct] = useState(null);
   const [showForm, setShowForm] = useState(false);
+  const [showSaveReview, setShowSaveReview] = useState(false);
   const [formData, setFormData] = useState(null);
   const [sortOrder, setSortOrder] = useState("asc");
   const [saving, setSaving] = useState(false);
@@ -5819,6 +5847,7 @@ function App() {
     ALLERGENS.forEach(a => b[a] = "No");
     setFormData(b);
     setEditProduct(null);
+    setShowSaveReview(false);
     setShowForm(true);
   };
   const openEdit = p => {
@@ -5827,13 +5856,18 @@ function App() {
       "판매점포": getProductStoreNames(p)
     });
     setEditProduct(p._id);
+    setShowSaveReview(false);
     setShowForm(true);
   };
-  const saveForm = async () => {
+  const saveForm = () => {
     if (!formData["제품이름"].trim()) {
       showProductToast("제품이름을 입력하세요.", "error");
       return;
     }
+    setShowSaveReview(true);
+  };
+  const confirmSaveForm = async () => {
+    if (saving || !showSaveReview) return;
     const validStoreNames = new Set(stores.map(store => store.name));
     const selectedStoreNames = [...new Set(
       (Array.isArray(formData["판매점포"]) ? formData["판매점포"] : [])
@@ -5851,6 +5885,7 @@ function App() {
         ...normalizedFormData,
         _id: editProduct
       } : normalizedFormData);
+      setShowSaveReview(false);
       setShowForm(false);
       showProductToast(editProduct ? "제품 수정이 완료되었습니다." : "제품 등록이 완료되었습니다.");
     } catch (e) {
@@ -6129,7 +6164,42 @@ function App() {
       animation: "load 1.2s ease-in-out infinite"
     }
   })), /*#__PURE__*/React.createElement("style", null, `@keyframes load{0%{transform:translateX(-100%)}100%{transform:translateX(200%)}}`));
-  return /*#__PURE__*/React.createElement(React.Fragment, null, productToast && /*#__PURE__*/React.createElement("div", {
+  const reviewedAllergens = formData ? ALLERGENS.filter(a => formData[a] === "Yes") : [];
+  const uncheckedAllergens = formData ? ALLERGENS.filter(a => formData[a] !== "Yes") : [];
+  return /*#__PURE__*/React.createElement(React.Fragment, null, showSaveReview && formData && /*#__PURE__*/React.createElement("div", {
+    className: "modal-overlay save-review-overlay",
+    role: "presentation"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "modal save-review-modal",
+    role: "dialog",
+    "aria-modal": true,
+    "aria-labelledby": "save-review-title"
+  }, /*#__PURE__*/React.createElement("div", { className: "modal-header" },
+    /*#__PURE__*/React.createElement("h2", { className: "modal-title", id: "save-review-title" }, editProduct ? "수정 내용 확인" : "등록 내용 확인"),
+    /*#__PURE__*/React.createElement("button", { className: "close-btn", type: "button", "aria-label": "확인 창 닫기", disabled: saving, onClick: () => setShowSaveReview(false) }, "×")
+  ), /*#__PURE__*/React.createElement("p", { className: "save-review-intro" }, "저장 전 알레르기 선택 상태를 확인해주세요."),
+  /*#__PURE__*/React.createElement("dl", { className: "save-review-info" },
+    /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("dt", null, "제품이름"), /*#__PURE__*/React.createElement("dd", null, formData["제품이름"].trim())),
+    /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("dt", null, "카테고리"), /*#__PURE__*/React.createElement("dd", null, formData["카테고리"] || "미분류")),
+    /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("dt", null, "판매금액"), /*#__PURE__*/React.createElement("dd", null, Number(formData["판매금액"]) > 0 ? Number(formData["판매금액"]).toLocaleString("ko-KR") + "원" : "미입력", Number(formData["세트금액"]) > 0 ? " · 세트 " + Number(formData["세트금액"]).toLocaleString("ko-KR") + "원" : "")),
+    /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("dt", null, "판매 점포"), /*#__PURE__*/React.createElement("dd", null, getProductStoreNames(formData).map(displayStoreName).join(", ") || "선택 없음")),
+    /*#__PURE__*/React.createElement("div", { style: { gridColumn: "1 / -1" } }, /*#__PURE__*/React.createElement("dt", null, "원산지 1~3순위"), /*#__PURE__*/React.createElement("dd", null, [0, 1, 2].map(i => getOriginText(formData["원산지"], i) || "미입력").join(" / ")))
+  ),
+  /*#__PURE__*/React.createElement("section", { className: "save-review-group selected" },
+    /*#__PURE__*/React.createElement("h3", null, "✓ 선택된 알레르기 · ", reviewedAllergens.length, "개"),
+    reviewedAllergens.length
+      ? /*#__PURE__*/React.createElement("div", { className: "save-review-chips" }, reviewedAllergens.map(a => /*#__PURE__*/React.createElement("span", { key: a, className: "save-review-chip" }, "✓ ", a)))
+      : /*#__PURE__*/React.createElement("p", { className: "save-review-none" }, "선택된 알레르기가 없습니다.")
+  ),
+  /*#__PURE__*/React.createElement("section", { className: "save-review-group unselected" },
+    /*#__PURE__*/React.createElement("h3", null, "□ 선택 안 된 항목 · ", uncheckedAllergens.length, "개"),
+    /*#__PURE__*/React.createElement("div", { className: "save-review-chips" }, uncheckedAllergens.map(a => /*#__PURE__*/React.createElement("span", { key: a, className: "save-review-chip" }, "□ ", a)))
+  ),
+  /*#__PURE__*/React.createElement("p", { className: "save-review-warning" }, "선택 안 된 항목은 '없음(No)'으로 저장됩니다. 원재료 기준으로 다시 확인해주세요."),
+  /*#__PURE__*/React.createElement("div", { className: "save-review-actions" },
+    /*#__PURE__*/React.createElement("button", { className: "btn btn-secondary", type: "button", disabled: saving, onClick: () => setShowSaveReview(false) }, "다시 수정"),
+    /*#__PURE__*/React.createElement("button", { className: "btn btn-primary", type: "button", disabled: saving, onClick: confirmSaveForm }, saving ? "저장 중..." : editProduct ? "확인 후 수정" : "확인 후 등록")
+  ))), productToast && /*#__PURE__*/React.createElement("div", {
     className: `product-mini-toast ${productToast.kind === "error" ? "error" : ""}`,
     role: productToast.kind === "error" ? "alert" : "status"
   }, /*#__PURE__*/React.createElement("span", {
@@ -6909,12 +6979,14 @@ function App() {
     className: "allergen-form-grid"
   }, ALLERGENS.map(a => /*#__PURE__*/React.createElement("button", {
     key: a,
-    className: `allergen-toggle ${formData[a] === "Yes" ? "on" : ""}`,
+    className: `allergen-toggle ${formData[a] === "Yes" ? "on" : "off"}`,
+    type: "button",
+    "aria-pressed": formData[a] === "Yes",
     onClick: () => setFormData(f => ({
       ...f,
       [a]: f[a] === "Yes" ? "No" : "Yes"
     }))
-  }, a))), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("span", { className: "allergen-toggle-mark", "aria-hidden": true }, formData[a] === "Yes" ? "✓" : ""), a))), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       gap: 8,
@@ -6928,7 +7000,7 @@ function App() {
     className: "btn btn-primary",
     onClick: saveForm,
     disabled: saving
-  }, saving ? "저장 중..." : editProduct ? "저장" : "추가")))));
+  }, saving ? "저장 중..." : "저장 내용 확인")))));
 }
 ReactDOM.createRoot(document.getElementById('root')).render(/*#__PURE__*/React.createElement(App, null));
 
