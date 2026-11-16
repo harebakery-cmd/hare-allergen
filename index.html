@@ -595,6 +595,15 @@
     .manage-store-chip{display:inline-flex;align-items:center;gap:6px;padding:4px 7px;border:1px solid #e5e5e5;border-radius:999px;background:#fff;font-size:11px;font-weight:600;color:#3e342d;white-space:nowrap}
     .manage-store-chip .store-dot{width:9px;height:9px;box-shadow:none}
     .manage-store-empty{font-size:11px;color:#737373}
+    @media(max-width:760px){
+      .manage-table td:nth-child(4){display:block;overflow-wrap:anywhere}
+      .manage-table td:nth-child(4)::before{display:block;margin-bottom:5px}
+      .manage-store-list{max-width:100%}
+      .manage-store-chip{max-width:100%;white-space:normal;overflow-wrap:anywhere}
+      .manage-table td:nth-child(7)>.btn-sm,
+      .manage-table td:nth-child(8) .btn-sm{min-height:44px}
+      .manage-table td.manage-search-empty{grid-column:1/-1!important;display:block!important}
+    }
 
     /* 제품 등록·수정 피드백 */
     .product-mini-toast{
